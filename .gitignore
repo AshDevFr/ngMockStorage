@@ -1,0 +1,7 @@
+.idea
+.tmp
+.DS_Store
+dist
+node_modules
+bower_components
+*.log

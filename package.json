@@ -1,0 +1,35 @@
+{
+  "name": "ngmockstorage",
+  "version": "0.1.0",
+  "description": "Angular $http decorator to provide a browser side mock service",
+  "main": "ngMockStorage.js",
+  "scripts": {
+    "test": "gulp test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AshDevFr/ngMockStorage.git"
+  },
+  "keywords": [
+    "angular",
+    "cookie",
+    "storage",
+    "local",
+    "localstorage",
+    "session",
+    "sessionstorage",
+    "mock"
+  ],
+  "author": "Sylvain CAU",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/AshDevFr/ngMockStorage/issues"
+  },
+  "homepage": "https://github.com/AshDevFr/ngMockStorage#readme",
+  "devDependencies": {
+    "gulp": "^3.9.0",
+    "gulp-babel": "^6.1.1",
+    "gulp-sourcemaps": "^1.6.0",
+    "gulp-uglify": "^1.5.1"
+  }
+}
