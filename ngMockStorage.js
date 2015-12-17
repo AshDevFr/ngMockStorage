@@ -310,7 +310,6 @@
               data   : rData
             });
           }
-
         } else {
           d.reject({
             status : 404,
@@ -323,7 +322,7 @@
       function post(url, data, options) {
         let rData,
             d  = $q.defer(),
-            id = 1,
+            id = Math.random().toString(36).substring(2),
             [r, p] = getResource(url);
 
         if (r) {
@@ -353,19 +352,121 @@
       }
 
       function put(url, data, options) {
+        let rData,
+            d = $q.defer(),
+            [r, p] = getResource(url);
 
+        if (r) {
+          let resourceId = p[r.key];
+          rData          = $mockStorage.getItem(r.id);
+          if (resourceId) {
+            let rIndex = rData.findIndex((item) => item[r.primaryKey] == resourceId);
+            if (rIndex > -1) {
+              rData[rIndex] = data;
+              $mockStorage.setItem(r.id, rData);
+              d.resolve({
+                status : 200,
+                data   : rData[rIndex]
+              });
+            } else {
+              d.reject({
+                status : 404,
+                data   : {error : 'Not Found'}
+              });
+            }
+          } else {
+            d.reject({
+              status : 404,
+              data   : {error : 'Not Id Given'}
+            });
+          }
+        } else {
+          d.reject({
+            status : 404,
+            data   : {error : 'Not a valid path!'}
+          });
+        }
+        return d.promise;
       }
 
       function remove(url, options) {
+        let rData,
+            d = $q.defer(),
+            [r, p] = getResource(url);
 
+        if (r) {
+          let resourceId = p[r.key];
+          rData          = $mockStorage.getItem(r.id);
+          if (resourceId) {
+            let rIndex = rData.findIndex((item) => item[r.primaryKey] == resourceId);
+            if (rIndex > -1) {
+              rData.splice(rIndex, 1);
+              $mockStorage.setItem(r.id, rData);
+              d.resolve({
+                status : 200,
+                data   : rData
+              });
+            } else {
+              d.reject({
+                status : 404,
+                data   : {error : 'Not Found'}
+              });
+            }
+          } else {
+            d.reject({
+              status : 404,
+              data   : {error : 'Not Id Given'}
+            });
+          }
+        } else {
+          d.reject({
+            status : 404,
+            data   : {error : 'Not a valid path!'}
+          });
+        }
+        return d.promise;
       }
 
       function patch(url, data, options) {
+        let rData,
+            d = $q.defer(),
+            [r, p] = getResource(url);
 
+        if (r) {
+          let resourceId = p[r.key];
+          rData          = $mockStorage.getItem(r.id);
+          if (resourceId) {
+            let rIndex = rData.findIndex((item) => item[r.primaryKey] == resourceId);
+            if (rIndex > -1) {
+              Object.assign(rData[rIndex], data);
+              $mockStorage.setItem(r.id, rData);
+              d.resolve({
+                status : 200,
+                data   : rData[rIndex]
+              });
+            } else {
+              d.reject({
+                status : 404,
+                data   : {error : 'Not Found'}
+              });
+            }
+          } else {
+            d.reject({
+              status : 404,
+              data   : {error : 'Not Id Given'}
+            });
+          }
+        } else {
+          d.reject({
+            status : 404,
+            data   : {error : 'Not a valid path!'}
+          });
+        }
+        return d.promise;
       }
 
       function getResource(path) {
-        path  = '/' + path + '/'.replace(/\/\//g, '/');
+        path  = ('/' + path + '/').replace(/\/\//g, '/');
         let r = resources.find((r) => {
           return _getRegex(r.path).test(path);
         });
@@ -435,11 +536,20 @@
             return $delegate[k].apply($delegate, arguments);
           };
         });
-      wrapper['get']  = function() {
+      wrapper['get']    = function() {
         return $mockRouter.get(...arguments);
       };
-      wrapper['post'] = function() {
+      wrapper['post']   = function() {
         return $mockRouter.post(...arguments);
+      };
+      wrapper['put']    = function() {
+        return $mockRouter.put(...arguments);
+      };
+      wrapper['patch']  = function() {
+        return $mockRouter.patch(...arguments);
+      };
+      wrapper['delete'] = function() {
+        return $mockRouter.remove(...arguments);
       };
       return wrapper;
     }
