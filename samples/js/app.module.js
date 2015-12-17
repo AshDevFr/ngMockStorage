@@ -1,5 +1,5 @@
 (function() {
   'use strict';
 
-  angular.module('ngMSApp', ['ngMockStorage']);
+  angular.module('todomvc', ['ngMockStorage']);
 })();

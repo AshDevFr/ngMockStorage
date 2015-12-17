@@ -1,15 +1,13 @@
 (function() {
   'use strict';
 
-  angular.module('ngMSApp')
+  angular.module('todomvc')
     .config(configFn);
 
-  configFn.$inject = ['$mockStorageProvider', '$mockRouterProvider'];
+  configFn.$inject = ['$mockRouterProvider'];
 
-  function configFn($mockStorageProvider, $mockRouterProvider) {
-    $mockRouterProvider.addResource('test');
-    $mockRouterProvider.addResource('test2', {parent : 'test', collection : false});
-    $mockRouterProvider.addResource('test3', {parent : 'test', primaryKey : '_id'});
-    $mockRouterProvider.addResource('test4', {parent : 'test3'});
+  function configFn($mockRouterProvider) {
+    $mockRouterProvider.setNamespace('api');
+    $mockRouterProvider.addResource('todos');
   }
 })();
