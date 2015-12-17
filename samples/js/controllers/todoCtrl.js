@@ -9,7 +9,6 @@
 angular.module('todomvc')
   .controller('TodoCtrl', function TodoCtrl($scope, $location, $filter, Todos) {
     Todos.fetch().then(function(response) {
-      console.log(response);
       $scope.todos          = response.data;
       $scope.remainingCount = $filter('filter')($scope.todos, {completed : false}).length;
     }, function(error) {
