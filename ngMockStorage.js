@@ -40,6 +40,8 @@
         serializer       = angular.toJson,
         deserializer     = angular.fromJson;
 
+    StorageService.$inject = ['$window', '$log'];
+
     provider = {
       setStorageType  : setStorageType,
       setKeyPrefix    : setKeyPrefix,
