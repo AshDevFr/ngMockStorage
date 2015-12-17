@@ -8,6 +8,7 @@
 
   function configFn($mockRouterProvider) {
     $mockRouterProvider.setNamespace('api');
+    $mockRouterProvider.setLogLevel('info');
     $mockRouterProvider.addResource('todos');
   }
 })();
