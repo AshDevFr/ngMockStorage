@@ -1,20 +1,20 @@
 (function() {
   'use strict';
-  const gulp       = require('gulp'),
-        gutil      = require('gulp-util'),
-        sourcemaps = require('gulp-sourcemaps'),
-        source     = require('vinyl-source-stream'),
-        buffer     = require('vinyl-buffer'),
-        browserify = require('browserify'),
-        watchify   = require('watchify'),
-        babel      = require('babelify'),
-        jshint     = require('gulp-jshint'),
-        jscs       = require('gulp-jscs'),
-        uglify     = require('gulp-uglify'),
-        rimraf     = require('gulp-rimraf'),
-        sources    = 'ngMockStorage.js',
-        destFile   = 'ngMockStorage.min.js',
-        destDir    = './dist';
+  var gulp       = require('gulp'),
+      gutil      = require('gulp-util'),
+      sourcemaps = require('gulp-sourcemaps'),
+      source     = require('vinyl-source-stream'),
+      buffer     = require('vinyl-buffer'),
+      browserify = require('browserify'),
+      watchify   = require('watchify'),
+      babel      = require('babelify'),
+      jshint     = require('gulp-jshint'),
+      jscs       = require('gulp-jscs'),
+      uglify     = require('gulp-uglify'),
+      rimraf     = require('gulp-rimraf'),
+      sources    = 'ngMockStorage.js',
+      destFile   = 'ngMockStorage.min.js',
+      destDir    = './dist';
 
   function rebundle(bundler) {
     bundler.bundle()
