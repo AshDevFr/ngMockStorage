@@ -1,20 +1,8 @@
-(function(root, factory) {
+(function(window, angular, undefined) {
   'use strict';
 
-  if (typeof define === 'function' && define.amd) {
-    define(['angular'], factory);
-  } else if (root.hasOwnProperty('angular')) {
-    // Browser globals (root is window), we don't register it.
-    factory(root.angular);
-  } else if (typeof exports === 'object') {
-    module.exports = factory(require('angular'));
-  }
-}(this, function(angular) {
-  'use strict';
-
-  // In cases where Angular does not get passed or angular is a truthy value
-  // but misses .module we can fall back to using window.
-  angular = (angular && angular.module) ? angular : window.angular;
+  StorageProvider.$inject = ['$windowProvider'];
+  RouterProvider.$inject  = ['$mockStorageProvider'];
 
   /**
    * @ngdoc overview
@@ -25,135 +13,435 @@
 
     /**
      * @ngdoc object
-     * @name ngMockStorage.$localStorage
+     * @name ngMockStorage.$mockStorage
+     * @requires $window
      * @requires $log
      */
 
-    .provider('$mockStorage', _storageProvider())
-    .provider('$routerStorage', _routerProvider());
+    .provider('$mockStorage', StorageProvider)
 
-  function _storageProvider() {
-    return function() {
-      var storageKeyPrefix = 'ngMockStorage-',
-          storageType      = 'localStorage',
-          serializer       = angular.toJson,
-          deserializer     = angular.fromJson;
+    /**
+     * @ngdoc object
+     * @name ngMockStorage.$mockRouter
+     * @requires $log
+     * @requires $q
+     */
 
-      this.setStorageType  = setStorageType;
-      this.setKeyPrefix    = setKeyPrefix;
-      this.setSerializer   = setSerializer;
-      this.setDeserializer = setDeserializer;
+    .provider('$mockRouter', RouterProvider)
 
-      storageService.$inject = ['$log'];
-      this.$get              = storageService;
+    .config(['$provide', ModuleConfig]);
 
 
-      function setStorageType(type) {
-        if (typeof type !== 'string') {
-          throw new TypeError('[ngMockStorage] - Provider.setStorageType() expects a String.');
-        }
-        storageType = type;
+  function StorageProvider($windowProvider) {
+    let provider,
+        $window          = $windowProvider.$get(),
+        storageKeyPrefix = 'ngMockStorage-',
+        storageType      = 'localStorage',
+        serializer       = angular.toJson,
+        deserializer     = angular.fromJson;
+
+    provider = {
+      setStorageType  : setStorageType,
+      setKeyPrefix    : setKeyPrefix,
+      setSerializer   : setSerializer,
+      setDeserializer : setDeserializer,
+      setItem         : setItem,
+      clear           : clear,
+      $get            : StorageService
+    };
+
+    return provider;
+
+    function setStorageType(type) {
+      if (typeof type !== 'string') {
+        throw new TypeError('[ngMockStorage] - Provider.setStorageType() expects a String.');
+      }
+      storageType = type;
+    }
+
+    function setKeyPrefix(prefix) {
+      if (typeof prefix !== 'string') {
+        throw new TypeError('[ngMockStorage] - Provider.setKeyPrefix() expects a String.');
+      }
+      storageKeyPrefix = prefix;
+    }
+
+    function setSerializer(s) {
+      if (typeof s !== 'function') {
+        throw new TypeError('[ngMockStorage] - Provider.setSerializer expects a function.');
+      }
+      serializer = s;
+    }
+
+    function setDeserializer(d) {
+      if (typeof d !== 'function') {
+        throw new TypeError('[ngMockStorage] - Provider.setDeserializer expects a function.');
+      }
+      deserializer = d;
+    }
+
+    function getItem(key) {
+      return deserializer($window[storageType].getItem(storageKeyPrefix + key));
+    }
+
+    function setItem(key, value) {
+      return $window[storageType].setItem(storageKeyPrefix + key, serializer(value));
+    }
+
+    function removeItem(key) {
+      return $window[storageType].setItem(storageKeyPrefix + key);
+    }
+
+    function clear() {
+      return $window[storageType].clear();
+    }
+
+    function StorageService($window, $log) {
+      let service;
+
+      if (isStorageSupported(storageType)) {
+        service = {
+          getItem    : getItem,
+          setItem    : setItem,
+          removeItem : removeItem,
+          clear      : clear
+        };
+      } else {
+        $log.warn('This browser does not support Web Storage!');
+        service = {
+          setItem    : angular.noop,
+          getItem    : angular.noop,
+          removeItem : angular.noop,
+          clear      : angular.noop
+        };
       }
 
-      function setKeyPrefix(prefix) {
-        if (typeof prefix !== 'string') {
-          throw new TypeError('[ngMockStorage] - Provider.setKeyPrefix() expects a String.');
+      return service;
+
+      function isStorageSupported() {
+
+        // Some installations of IE, for an unknown reason, throw "SCRIPT5: Error: Access is denied"
+        // when accessing window.localStorage. This happens before you try to do anything with it. Catch
+        // that error and allow execution to continue.
+
+        // fix 'SecurityError: DOM Exception 18' exception in Desktop Safari, Mobile Safari
+        // when "Block cookies": "Always block" is turned on
+        let supported, key;
+        try {
+          supported = $window[storageType];
         }
-        storageKeyPrefix = prefix;
-      }
-
-      function setSerializer(s) {
-        if (typeof s !== 'function') {
-          throw new TypeError('[ngMockStorage] - Provider.setSerializer expects a function.');
-        }
-        serializer = s;
-      }
-
-      function setDeserializer(d) {
-        if (typeof d !== 'function') {
-          throw new TypeError('[ngMockStorage] - Provider.setDeserializer expects a function.');
-        }
-        deserializer = d;
-      }
-
-      function storageService($log) {
-
-        var service;
-
-        // #9: Assign a placeholder object if Web Storage is unavailable to prevent breaking the entire AngularJS app
-        if (isStorageSupported(storageType)) {
-          service = {
-            getItem    : getItem,
-            setItem    : setItem,
-            removeItem : removeItem,
-            clear      : clear
-          };
-        } else {
-          $log.warn('This browser does not support Web Storage!');
-          service = {
-            setItem    : angular.noop,
-            getItem    : angular.noop,
-            removeItem : angular.noop,
-            clear      : angular.noop
-          };
+        catch (err) {
+          supported = false;
         }
 
-        return service;
+        // When Safari (OS X or iOS) is in private browsing mode, it appears as though localStorage
+        // is available, but trying to call .setItem throws an exception below:
+        // "QUOTA_EXCEEDED_ERR: DOM Exception 22: An attempt was made to add something to storage that exceeded the quota."
+        if (supported && storageType === 'localStorage') {
+          key = '__' + Math.round(Math.random() * 1e7);
 
-        function isStorageSupported() {
-
-          // Some installations of IE, for an unknown reason, throw "SCRIPT5: Error: Access is denied"
-          // when accessing window.localStorage. This happens before you try to do anything with it. Catch
-          // that error and allow execution to continue.
-
-          // fix 'SecurityError: DOM Exception 18' exception in Desktop Safari, Mobile Safari
-          // when "Block cookies": "Always block" is turned on
-          var supported, key;
           try {
-            supported = $window[storageType];
+            localStorage.setItem(key, key);
+            localStorage.removeItem(key);
           }
           catch (err) {
             supported = false;
           }
+        }
 
-          // When Safari (OS X or iOS) is in private browsing mode, it appears as though localStorage
-          // is available, but trying to call .setItem throws an exception below:
-          // "QUOTA_EXCEEDED_ERR: DOM Exception 22: An attempt was made to add something to storage that exceeded the quota."
-          if (supported && storageType === 'localStorage') {
-            key = '__' + Math.round(Math.random() * 1e7);
+        return supported;
+      }
+    }
+  }
 
-            try {
-              localStorage.setItem(key, key);
-              localStorage.removeItem(key);
+  function RouterProvider($mockStorageProvider) {
+    let provider,
+        namespace = '',
+        resources = [];
+
+    RouterService.$inject = ['$log', '$q', '$mockStorage'];
+
+    provider = {
+      setNamespace : setNamespace,
+      addResource  : addResource,
+      $get         : RouterService
+    };
+
+    return provider;
+
+    function setNamespace(n) {
+      if (typeof n !== 'string') {
+        throw new TypeError('[ngMockRouter] - Provider.setNamespace expects a string.');
+      }
+      namespace = n;
+    }
+
+    function addResource(n, o) {
+      let options, resource;
+      if (typeof n !== 'string') {
+        throw new TypeError('[ngMockRouter] - Provider.addResource expects string, [object].');
+      }
+
+      if (o && typeof o !== 'object') {
+        throw new TypeError('[ngMockRouter] - Provider.addResource expects string, [object].');
+      }
+
+      options = Object.assign({
+        primaryKey : 'id',
+        collection : true,
+        parent     : null,
+        key        : _getKey(n)
+      }, o || {});
+
+      resource = _getResource(n, options.parent);
+
+      if (resource) {
+        throw new TypeError('[ngMockRouter] - Provider.addResource: Resource ' + n + ' already exist.');
+      } else {
+        let newResource = {
+          name : n
+        };
+
+        newResource.primaryKey = options.primaryKey;
+        newResource.key        = options.key;
+        newResource.collection = options.collection;
+        newResource.data       = options.collection ? [] : {};
+
+        if (options.parent) {
+          let parent = _getResource(options.parent);
+          if (parent) {
+            if (newResource.collection && parent.keys.indexOf(newResource.key) > -1) {
+              throw new TypeError('[ngMockRouter] - Provider.addResource: key ' + newResource.key + ' already exist. You can specify another one with the option key');
             }
-            catch (err) {
-              supported = false;
+            newResource.parent = options.parent;
+          }
+        }
+        newResource.path = _getPath(newResource);
+        newResource.id   = _getId(newResource);
+        newResource.keys = _getKeys(newResource);
+
+        $mockStorageProvider.setItem(newResource.id, newResource.data);
+
+        resources.push(newResource);
+      }
+    }
+
+    function _getResource(n, p) {
+      return resources.find((r)=> {
+        if (p) {
+          return (r.name === n && r.parent === p);
+        } else {
+          return r.name === n;
+        }
+      });
+    }
+
+    function _getKey(n) {
+      return 'id' + n.charAt(0).toUpperCase() + n.substr(1).toLowerCase();
+    }
+
+    function _getPath(r) {
+      let path = '';
+      if (r.parent) {
+        path += _getResource(r.parent).path + '/';
+      }
+      path += r.name + (r.collection ? '/:' + r.key : '');
+
+      return path;
+    }
+
+    function _getId(r) {
+      let id = '';
+      if (r.parent) {
+        id += _getResource(r.parent).id + '_';
+      }
+      id += r.name;
+
+      return id;
+    }
+
+    function _getKeys(r) {
+      let keys = [];
+      if (r.parent && r.collection) {
+        keys = [..._getResource(r.parent).keys, r.key];
+      } else if (r.parent) {
+        keys = _getResource(r.parent).keys;
+      } else if (r.collection) {
+        keys = [r.key];
+      }
+      return keys;
+    }
+
+    function RouterService($log, $q, $mockStorage) {
+      let service = {
+        get         : get,
+        post        : post,
+        put         : put,
+        remove      : remove,
+        patch       : patch,
+        getResource : getResource
+      };
+      return service;
+
+      function get(url, options) {
+        let rData,
+            d = $q.defer(),
+            [r, p] = getResource(url);
+
+        if (r) {
+          let resourceId = p[r.key];
+          rData          = $mockStorage.getItem(r.id);
+          if (resourceId) {
+            let result = rData.find((item) => item[r.primaryKey] == resourceId);
+            if (result) {
+              d.resolve({
+                status : 200,
+                data   : result
+              });
+            } else {
+              d.reject({
+                status : 404,
+                data   : {error : 'Not Found'}
+              });
             }
+          } else {
+            d.resolve({
+              status : 200,
+              data   : rData
+            });
           }
 
-          return supported;
+        } else {
+          d.reject({
+            status : 404,
+            data   : {error : 'Not a valid path!'}
+          });
         }
+        return d.promise;
+      }
 
-        function getItem(key) {
-          return deserializer(window[storageType].getItem(storageKeyPrefix + key));
+      function post(url, data, options) {
+        let rData,
+            d  = $q.defer(),
+            id = 1,
+            [r, p] = getResource(url);
+
+        if (r) {
+          rData = $mockStorage.getItem(r.id);
+          if (Array.isArray(rData)) {
+            data[r.primaryKey] = id;
+            rData.push(data);
+            $mockStorage.setItem(r.id, rData);
+            d.resolve({
+              status : 200,
+              data   : data
+            });
+          } else {
+            d.reject({
+              status : 405,
+              data   : {error : 'Method Not Allowed'}
+            });
+          }
+        } else {
+          d.reject({
+            status : 404,
+            data   : {error : 'Not a valid path!'}
+          });
         }
+        return d.promise;
 
-        function setItem(key, value) {
-          return window[storageType].setItem(storageKeyPrefix + key, serializer(value));
-        }
+      }
 
-        function removeItem(key) {
-          return window[storageType].setItem(storageKeyPrefix + key);
-        }
+      function put(url, data, options) {
 
-        function clear() {
-          return window[storageType].clear();
+      }
+
+      function remove(url, options) {
+
+      }
+
+      function patch(url, data, options) {
+
+      }
+
+      function getResource(path) {
+        path  = '/' + path + '/'.replace(/\/\//g, '/');
+        let r = resources.find((r) => {
+          return _getRegex(r.path).test(path);
+        });
+        if (r) {
+          return [r, _getParams(path, r)];
+        } else {
+          return [null, null];
         }
       }
-    };
+
+      function _getRegex(path) {
+        path = '/' + namespace + '/' + path + '/';
+        return new RegExp('^' +
+          path.replace(/\/\//g, '/')
+            .replace(/\//g, '\\/')
+            .replace(/\:[\w]*/g, '(?:([^\\/]*))') +
+          '?$');
+      }
+
+      function _getParams(path, r) {
+        let i,
+            params = {},
+            m      = path.match(_getRegex(r.path));
+
+        for (i = 1; i < m.length; i++) {
+          let key = r.keys[i - 1],
+              val = _decodeParam(m[i]);
+
+          if (val !== undefined || !(hasOwnProperty.call(params, key))) {
+            params[key] = val;
+          }
+        }
+        return params;
+      }
+
+      function _decodeParam(val) {
+        if (typeof val !== 'string' || val.length === 0) {
+          return val;
+        }
+
+        try {
+          return decodeURIComponent(val);
+        } catch (err) {
+          if (err instanceof URIError) {
+            err.message = 'Failed to decode param \'' + val + '\'';
+            err.status  = err.statusCode = 400;
+          }
+          throw err;
+        }
+      }
+    }
   }
 
-  function _routerProvider() {
+  function ModuleConfig($provide) {
+    httpDecorator.$inject = ['$delegate', '$mockRouter'];
+    $provide.decorator('$http', httpDecorator);
 
+    function httpDecorator($delegate, $mockRouter) {
+      let wrapper = function() {
+        return $delegate.apply($delegate, arguments);
+      };
+      // ["pendingRequests", "get", "delete", "head", "jsonp", "post", "put", "patch", "defaults"]
+      // ["get", "delete", "head", "jsonp", "post", "put", "patch"]
+      Object.keys($delegate).filter((k)=> typeof $delegate[k] === 'function')
+        .forEach((k)=> {
+          wrapper[k] = function() {
+            return $delegate[k].apply($delegate, arguments);
+          };
+        });
+      wrapper['get']  = function() {
+        return $mockRouter.get(...arguments);
+      };
+      wrapper['post'] = function() {
+        return $mockRouter.post(...arguments);
+      };
+      return wrapper;
+    }
   }
-}));
+})(window, window.angular);
