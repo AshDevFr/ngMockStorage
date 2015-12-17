@@ -7,45 +7,74 @@
         buffer     = require('vinyl-buffer'),
         browserify = require('browserify'),
         watchify   = require('watchify'),
-        babel      = require('babelify');
+        babel      = require('babelify'),
+        jshint     = require('gulp-jshint'),
+        jscs       = require('gulp-jscs'),
+        uglify     = require('gulp-uglify'),
+        rimraf     = require('gulp-rimraf'),
+        sources    = 'ngMockStorage.js',
+        destFile   = 'ngMockStorage.min.js',
+        destDir    = './dist';
+
+  function rebundle(bundler) {
+    bundler.bundle()
+      .on('error', (err) => {
+        gutil.log(gutil.colors.red(err));
+        this.emit('end');
+      })
+      .pipe(source(destFile))
+      .pipe(buffer())
+      .pipe(sourcemaps.init({loadMaps : true}))
+      .pipe(uglify())
+      .pipe(sourcemaps.write('./'))
+      .pipe(gulp.dest(destDir));
+  }
 
   function compile(watch) {
-    var bundler = watchify(browserify('ngMockStorage.js', {debug : true}).transform(babel, {presets:['es2015']}));
+    var bundler;
 
-    function rebundle() {
-      bundler.bundle()
-        .on('error', function(err) {
-          gutil.log(gutil.colors.red(err));
-          this.emit('end');
-        })
-        .pipe(source('ngMockStorage.js'))
-        .pipe(buffer())
-        .pipe(sourcemaps.init({loadMaps : true}))
-        .pipe(sourcemaps.write('./'))
-        .pipe(gulp.dest('./dist'));
-    }
 
     if (watch) {
+      bundler = watchify(browserify(sources, {debug : true}).transform(babel, {presets : ['es2015']}));
       bundler.on('update', function() {
         gutil.log('Bundling ...');
-        rebundle();
+        rebundle(bundler);
       });
+    } else {
+      bundler = browserify(sources, {debug : true}).transform(babel, {presets : ['es2015']});
     }
 
-    rebundle();
+    return rebundle(bundler);
   }
 
   function watch() {
     return compile(true);
   }
 
-  gulp.task('build', function() {
+  gulp.task('clean', () => {
+    return gulp.src(destDir, {read : false})
+      .pipe(rimraf({force : true}));
+  });
+
+  gulp.task('lint', () => {
+    return gulp.src(sources)
+      .pipe(jshint())
+      .pipe(jshint.reporter('default'));
+  });
+
+  gulp.task('jscs', () => {
+    return gulp.src(sources)
+      .pipe(jscs())
+      .pipe(jshint.reporter('default'));
+  });
+
+  gulp.task('build', ['clean', 'lint', 'jscs'], () => {
     return compile();
   });
 
-  gulp.task('watch', function() {
+  gulp.task('watch', () => {
     return watch();
   });
 
-  gulp.task('default', ['watch']);
+  gulp.task('default', ['build']);
 })();
