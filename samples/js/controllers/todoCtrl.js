@@ -8,6 +8,7 @@
  */
 angular.module('todomvc')
   .controller('TodoCtrl', function TodoCtrl($scope, $location, $filter, Todos) {
+    $scope.fetch
     Todos.fetch().then(function(response) {
       $scope.todos          = response.data;
       $scope.remainingCount = $filter('filter')($scope.todos, {completed : false}).length;
@@ -107,7 +108,6 @@ angular.module('todomvc')
     };
 
     $scope.markAll = function(completed) {
-      console.log(completed);
       $scope.todos.forEach(function(todo) {
         todo.completed = completed;
         $scope.todoCompleted(todo);
