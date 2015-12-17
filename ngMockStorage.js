@@ -292,7 +292,7 @@
           let resourceId = p[r.key];
           rData          = $mockStorage.getItem(r.id);
           if (resourceId) {
-            let result = rData.find((item) => item[r.primaryKey] == resourceId);
+            let result = rData.find((item) => String(item[r.primaryKey]) === String(resourceId));
             if (result) {
               d.resolve({
                 status : 200,
@@ -360,7 +360,7 @@
           let resourceId = p[r.key];
           rData          = $mockStorage.getItem(r.id);
           if (resourceId) {
-            let rIndex = rData.findIndex((item) => item[r.primaryKey] == resourceId);
+            let rIndex = rData.findIndex((item) => String(item[r.primaryKey]) === String(resourceId));
             if (rIndex > -1) {
               rData[rIndex] = data;
               $mockStorage.setItem(r.id, rData);
@@ -398,7 +398,7 @@
           let resourceId = p[r.key];
           rData          = $mockStorage.getItem(r.id);
           if (resourceId) {
-            let rIndex = rData.findIndex((item) => item[r.primaryKey] == resourceId);
+            let rIndex = rData.findIndex((item) => String(item[r.primaryKey]) === String(resourceId));
             if (rIndex > -1) {
               rData.splice(rIndex, 1);
               $mockStorage.setItem(r.id, rData);
@@ -436,7 +436,7 @@
           let resourceId = p[r.key];
           rData          = $mockStorage.getItem(r.id);
           if (resourceId) {
-            let rIndex = rData.findIndex((item) => item[r.primaryKey] == resourceId);
+            let rIndex = rData.findIndex((item) => String(item[r.primaryKey]) === String(resourceId));
             if (rIndex > -1) {
               Object.assign(rData[rIndex], data);
               $mockStorage.setItem(r.id, rData);
