@@ -158,13 +158,16 @@
 
   function RouterProvider($mockStorageProvider) {
     let provider,
-        namespace = '',
-        resources = [];
+        namespace           = '',
+        logLevel            = 0,
+        availablesLogLevels = {error : 0, warn : 1, info : 2, debug : 3},
+        resources           = [];
 
     RouterService.$inject = ['$log', '$q', '$mockStorage'];
 
     provider = {
       setNamespace : setNamespace,
+      setLogLevel  : setLogLevel,
       addResource  : addResource,
       $get         : RouterService
     };
@@ -176,6 +179,15 @@
         throw new TypeError('[ngMockRouter] - Provider.setNamespace expects a string.');
       }
       namespace = n;
+    }
+
+    function setLogLevel(l) {
+      if (typeof l !== 'string') {
+        throw new TypeError('[ngMockRouter] - Provider.setLogLevel expects a string (error|warning|info).');
+      }
+      if (Object.keys(availablesLogLevels).indexOf(l) > -1) {
+        logLevel = availablesLogLevels[l];
+      }
     }
 
     function addResource(n, o) {
@@ -286,6 +298,10 @@
       return service;
 
       function get(url, options) {
+        _log('info', 'GET : ', url);
+        if (options) {
+          _log('info', 'Options : ', options);
+        }
         let rData,
             d = $q.defer(),
             [r, p] = getResource(url);
@@ -296,23 +312,27 @@
           if (resourceId) {
             let result = rData.find((item) => String(item[r.primaryKey]) === String(resourceId));
             if (result) {
+              _log('info', 'Response : ', 200, result);
               d.resolve({
                 status : 200,
                 data   : result
               });
             } else {
+              _log('info', 'Response : ', 404, {error : 'Not Found'});
               d.reject({
                 status : 404,
                 data   : {error : 'Not Found'}
               });
             }
           } else {
+            _log('info', 'Response : ', 200, rData);
             d.resolve({
               status : 200,
               data   : rData
             });
           }
         } else {
+          _log('info', 'Response : ', 404, {error : 'Not a valid path!'});
           d.reject({
             status : 404,
             data   : {error : 'Not a valid path!'}
@@ -322,6 +342,11 @@
       }
 
       function post(url, data, options) {
+        _log('info', 'POST : ', url);
+        _log('info', 'Data : ', data);
+        if (options) {
+          _log('info', 'Options : ', options);
+        }
         let rData,
             d  = $q.defer(),
             id = Math.random().toString(36).substring(2),
@@ -333,17 +358,20 @@
             data[r.primaryKey] = id;
             rData.push(data);
             $mockStorage.setItem(r.id, rData);
+            _log('info', 'Response : ', 200, data);
             d.resolve({
               status : 200,
               data   : data
             });
           } else {
+            _log('info', 'Response : ', 405, {error : 'Method Not Allowed'});
             d.reject({
               status : 405,
               data   : {error : 'Method Not Allowed'}
             });
           }
         } else {
+          _log('info', 'Response : ', 404, {error : 'Not a valid path!'});
           d.reject({
             status : 404,
             data   : {error : 'Not a valid path!'}
@@ -354,6 +382,11 @@
       }
 
       function put(url, data, options) {
+        _log('info', 'PUT : ', url);
+        _log('info', 'Data : ', data);
+        if (options) {
+          _log('info', 'Options : ', options);
+        }
         let rData,
             d = $q.defer(),
             [r, p] = getResource(url);
@@ -366,23 +399,27 @@
             if (rIndex > -1) {
               rData[rIndex] = data;
               $mockStorage.setItem(r.id, rData);
+              _log('info', 'Response : ', 200, rData[rIndex]);
               d.resolve({
                 status : 200,
                 data   : rData[rIndex]
               });
             } else {
+              _log('info', 'Response : ', 404, {error : 'Not Found'});
               d.reject({
                 status : 404,
                 data   : {error : 'Not Found'}
               });
             }
           } else {
+            _log('info', 'Response : ', 404, {error : 'No Id Given'});
             d.reject({
               status : 404,
-              data   : {error : 'Not Id Given'}
+              data   : {error : 'No Id Given'}
             });
           }
         } else {
+          _log('info', 'Response : ', 404, {error : 'Not a valid path!'});
           d.reject({
             status : 404,
             data   : {error : 'Not a valid path!'}
@@ -392,6 +429,10 @@
       }
 
       function remove(url, options) {
+        _log('info', 'DELETE : ', url);
+        if (options) {
+          _log('info', 'Options : ', options);
+        }
         let rData,
             d = $q.defer(),
             [r, p] = getResource(url);
@@ -404,23 +445,27 @@
             if (rIndex > -1) {
               rData.splice(rIndex, 1);
               $mockStorage.setItem(r.id, rData);
+              _log('info', 'Response : ', 200, rData);
               d.resolve({
                 status : 200,
                 data   : rData
               });
             } else {
+              _log('info', 'Response : ', 404, {error : 'Not Found'});
               d.reject({
                 status : 404,
                 data   : {error : 'Not Found'}
               });
             }
           } else {
+            _log('info', 'Response : ', 404, {error : 'No Id Given'});
             d.reject({
               status : 404,
-              data   : {error : 'Not Id Given'}
+              data   : {error : 'No Id Given'}
             });
           }
         } else {
+          _log('info', 'Response : ', 404, {error : 'Not a valid path!'});
           d.reject({
             status : 404,
             data   : {error : 'Not a valid path!'}
@@ -430,6 +475,11 @@
       }
 
       function patch(url, data, options) {
+        _log('info', 'PATCH : ', url);
+        _log('info', 'Data : ', data);
+        if (options) {
+          _log('info', 'Options : ', options);
+        }
         let rData,
             d = $q.defer(),
             [r, p] = getResource(url);
@@ -442,23 +492,27 @@
             if (rIndex > -1) {
               Object.assign(rData[rIndex], data);
               $mockStorage.setItem(r.id, rData);
+              _log('info', 'Response : ', 200, rData[rIndex]);
               d.resolve({
                 status : 200,
                 data   : rData[rIndex]
               });
             } else {
+              _log('info', 'Response : ', 404, {error : 'Not Found'});
               d.reject({
                 status : 404,
                 data   : {error : 'Not Found'}
               });
             }
           } else {
+            _log('info', 'Response : ', 404, {error : 'No Id Given'});
             d.reject({
               status : 404,
-              data   : {error : 'Not Id Given'}
+              data   : {error : 'No Id Given'}
             });
           }
         } else {
+          _log('info', 'Response : ', 404, {error : 'Not a valid path!'});
           d.reject({
             status : 404,
             data   : {error : 'Not a valid path!'}
@@ -517,6 +571,12 @@
             err.status  = err.statusCode = 400;
           }
           throw err;
+        }
+      }
+
+      function _log(l, ...msg) {
+        if (Object.keys(availablesLogLevels).indexOf(l) > -1 && logLevel >= availablesLogLevels[l]) {
+          $log[l](...msg);
         }
       }
     }
