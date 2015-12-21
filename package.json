@@ -1,6 +1,6 @@
 {
   "name": "ngmockstorage",
-  "version": "0.1.45",
+  "version": "0.1.5",
   "description": "Angular $http decorator to provide a browser side mock service",
   "main": "ngMockStorage.js",
   "scripts": {
