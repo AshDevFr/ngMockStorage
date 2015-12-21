@@ -191,7 +191,7 @@
     }
 
     function addResource(n, o) {
-      let options, resource;
+      let config, resource;
       if (typeof n !== 'string') {
         throw new TypeError('[ngMockRouter] - Provider.addResource expects string, [object].');
       }
@@ -200,14 +200,14 @@
         throw new TypeError('[ngMockRouter] - Provider.addResource expects string, [object].');
       }
 
-      options = Object.assign({
+      config = Object.assign({
         primaryKey : 'id',
         collection : true,
         parent     : null,
         key        : _getKey(n)
       }, o || {});
 
-      resource = _getResource(n, options.parent);
+      resource = _getResource(n, config.parent);
 
       if (resource) {
         throw new TypeError('[ngMockRouter] - Provider.addResource: Resource ' + n + ' already exist.');
@@ -216,18 +216,18 @@
           name : n
         };
 
-        newResource.primaryKey = options.primaryKey;
-        newResource.key        = options.key;
-        newResource.collection = options.collection;
-        newResource.data       = options.collection ? [] : {};
+        newResource.primaryKey = config.primaryKey;
+        newResource.key        = config.key;
+        newResource.collection = config.collection;
+        newResource.data       = config.collection ? [] : {};
 
-        if (options.parent) {
-          let parent = _getResource(options.parent);
+        if (config.parent) {
+          let parent = _getResource(config.parent);
           if (parent) {
             if (newResource.collection && parent.keys.indexOf(newResource.key) > -1) {
               throw new TypeError('[ngMockRouter] - Provider.addResource: key ' + newResource.key + ' already exist. You can specify another one with the option key');
             }
-            newResource.parent = options.parent;
+            newResource.parent = config.parent;
           }
         }
         newResource.path = _getPath(newResource);
@@ -288,72 +288,33 @@
 
     function RouterService($log, $q, $mockStorage) {
       let service = {
-        get         : get,
-        post        : post,
-        put         : put,
-        remove      : remove,
-        patch       : patch,
+        get         : get(),
+        post        : post(),
+        put         : put(),
+        delete      : remove(),
+        patch       : patch(),
         getResource : getResource
       };
+
+
       return service;
 
-      function get(url, options) {
-        _log('info', 'GET : ', url);
-        if (options) {
-          _log('info', 'Options : ', options);
-        }
-        let rData,
-            d = $q.defer(),
-            [r, p] = getResource(url);
-
-        if (r) {
-          let resourceId = p[r.key];
-          rData          = $mockStorage.getItem(r.id);
-          if (resourceId) {
-            let result = rData.find((item) => String(item[r.primaryKey]) === String(resourceId));
-            if (result) {
-              _log('info', 'Response : ', 200, result);
-              d.resolve({
-                status : 200,
-                data   : result
-              });
-            } else {
-              _log('info', 'Response : ', 404, {error : 'Not Found'});
-              d.reject({
-                status : 404,
-                data   : {error : 'Not Found'}
-              });
-            }
-          } else {
-            _log('info', 'Response : ', 200, rData);
-            d.resolve({
-              status : 200,
-              data   : rData
-            });
+      function get() {
+        return _createMethodWithoutData('get', function(d, r, p, rData, rIndex) {
+          if (typeof rIndex !== 'undefined' && rIndex !== null) {
+            rData = rData[rIndex];
           }
-        } else {
-          _log('info', 'Response : ', 404, {error : 'Not a valid path!'});
-          d.reject({
-            status : 404,
-            data   : {error : 'Not a valid path!'}
+          _log('info', 'Response : ', 200, rData);
+          d.resolve({
+            status : 200,
+            data   : rData
           });
-        }
-        return d.promise;
+        });
       }
 
-      function post(url, data, options) {
-        _log('info', 'POST : ', url);
-        _log('info', 'Data : ', data);
-        if (options) {
-          _log('info', 'Options : ', options);
-        }
-        let rData,
-            d  = $q.defer(),
-            id = Math.random().toString(36).substring(2),
-            [r, p] = getResource(url);
-
-        if (r) {
-          rData = $mockStorage.getItem(r.id);
+      function post() {
+        return _createMethodWithData('post', function(d, r, p, data, rData) {
+          let id = Math.random().toString(36).substring(2);
           if (Array.isArray(rData)) {
             data[r.primaryKey] = id;
             rData.push(data);
@@ -370,155 +331,43 @@
               data   : {error : 'Method Not Allowed'}
             });
           }
-        } else {
-          _log('info', 'Response : ', 404, {error : 'Not a valid path!'});
-          d.reject({
-            status : 404,
-            data   : {error : 'Not a valid path!'}
-          });
-        }
-        return d.promise;
-
+        });
       }
 
-      function put(url, data, options) {
-        _log('info', 'PUT : ', url);
-        _log('info', 'Data : ', data);
-        if (options) {
-          _log('info', 'Options : ', options);
-        }
-        let rData,
-            d = $q.defer(),
-            [r, p] = getResource(url);
-
-        if (r) {
-          let resourceId = p[r.key];
-          rData          = $mockStorage.getItem(r.id);
-          if (resourceId) {
-            let rIndex = rData.findIndex((item) => String(item[r.primaryKey]) === String(resourceId));
-            if (rIndex > -1) {
-              rData[rIndex] = data;
-              $mockStorage.setItem(r.id, rData);
-              _log('info', 'Response : ', 200, rData[rIndex]);
-              d.resolve({
-                status : 200,
-                data   : rData[rIndex]
-              });
-            } else {
-              _log('info', 'Response : ', 404, {error : 'Not Found'});
-              d.reject({
-                status : 404,
-                data   : {error : 'Not Found'}
-              });
-            }
-          } else {
-            _log('info', 'Response : ', 404, {error : 'No Id Given'});
-            d.reject({
-              status : 404,
-              data   : {error : 'No Id Given'}
-            });
-          }
-        } else {
-          _log('info', 'Response : ', 404, {error : 'Not a valid path!'});
-          d.reject({
-            status : 404,
-            data   : {error : 'Not a valid path!'}
+      function put() {
+        return _createMethodWithData('put', function(d, r, p, data, rData, rIndex) {
+          rData[rIndex] = data;
+          $mockStorage.setItem(r.id, rData);
+          _log('info', 'Response : ', 200, rData[rIndex]);
+          d.resolve({
+            status : 200,
+            data   : rData[rIndex]
           });
-        }
-        return d.promise;
+        });
       }
 
-      function remove(url, options) {
-        _log('info', 'DELETE : ', url);
-        if (options) {
-          _log('info', 'Options : ', options);
-        }
-        let rData,
-            d = $q.defer(),
-            [r, p] = getResource(url);
-
-        if (r) {
-          let resourceId = p[r.key];
-          rData          = $mockStorage.getItem(r.id);
-          if (resourceId) {
-            let rIndex = rData.findIndex((item) => String(item[r.primaryKey]) === String(resourceId));
-            if (rIndex > -1) {
-              rData.splice(rIndex, 1);
-              $mockStorage.setItem(r.id, rData);
-              _log('info', 'Response : ', 200, rData);
-              d.resolve({
-                status : 200,
-                data   : rData
-              });
-            } else {
-              _log('info', 'Response : ', 404, {error : 'Not Found'});
-              d.reject({
-                status : 404,
-                data   : {error : 'Not Found'}
-              });
-            }
-          } else {
-            _log('info', 'Response : ', 404, {error : 'No Id Given'});
-            d.reject({
-              status : 404,
-              data   : {error : 'No Id Given'}
-            });
-          }
-        } else {
-          _log('info', 'Response : ', 404, {error : 'Not a valid path!'});
-          d.reject({
-            status : 404,
-            data   : {error : 'Not a valid path!'}
+      function remove() {
+        return _createMethodWithoutData('delete', function(d, r, p, rData, rIndex) {
+          rData.splice(rIndex, 1);
+          $mockStorage.setItem(r.id, rData);
+          _log('info', 'Response : ', 200, rData);
+          d.resolve({
+            status : 200,
+            data   : rData
           });
-        }
-        return d.promise;
+        });
       }
 
-      function patch(url, data, options) {
-        _log('info', 'PATCH : ', url);
-        _log('info', 'Data : ', data);
-        if (options) {
-          _log('info', 'Options : ', options);
-        }
-        let rData,
-            d = $q.defer(),
-            [r, p] = getResource(url);
-
-        if (r) {
-          let resourceId = p[r.key];
-          rData          = $mockStorage.getItem(r.id);
-          if (resourceId) {
-            let rIndex = rData.findIndex((item) => String(item[r.primaryKey]) === String(resourceId));
-            if (rIndex > -1) {
-              Object.assign(rData[rIndex], data);
-              $mockStorage.setItem(r.id, rData);
-              _log('info', 'Response : ', 200, rData[rIndex]);
-              d.resolve({
-                status : 200,
-                data   : rData[rIndex]
-              });
-            } else {
-              _log('info', 'Response : ', 404, {error : 'Not Found'});
-              d.reject({
-                status : 404,
-                data   : {error : 'Not Found'}
-              });
-            }
-          } else {
-            _log('info', 'Response : ', 404, {error : 'No Id Given'});
-            d.reject({
-              status : 404,
-              data   : {error : 'No Id Given'}
-            });
-          }
-        } else {
-          _log('info', 'Response : ', 404, {error : 'Not a valid path!'});
-          d.reject({
-            status : 404,
-            data   : {error : 'Not a valid path!'}
+      function patch() {
+        return _createMethodWithData('patch', function(d, r, p, data, rData, rIndex) {
+          Object.assign(rData[rIndex], data);
+          $mockStorage.setItem(r.id, rData);
+          _log('info', 'Response : ', 200, rData[rIndex]);
+          d.resolve({
+            status : 200,
+            data   : rData[rIndex]
           });
-        }
-        return d.promise;
+        });
       }
 
       function getResource(path) {
@@ -579,6 +428,97 @@
           $log[l](...msg);
         }
       }
+
+      function _createMethodWithoutData(name, callback) {
+        return function(url, config) {
+          _log('info', name.toUpperCase() + ' : ', url);
+          if (config) {
+            _log('info', 'Config : ', config);
+          }
+          let d = $q.defer(),
+              [r, p] = getResource(url);
+
+          if (r) {
+            let resourceId = p[r.key],
+                rData      = $mockStorage.getItem(r.id);
+
+            if (resourceId) {
+              let rIndex = rData.findIndex((item) => String(item[r.primaryKey]) === String(resourceId));
+              if (rIndex > -1) {
+                callback(d, r, p, rData, rIndex);
+              } else {
+                _log('info', 'Response : ', 404, {error : 'Not Found'});
+                d.reject({
+                  status : 404,
+                  data   : {error : 'Not Found'}
+                });
+              }
+            } else if (name === 'get') {
+              callback(d, r, p, rData);
+            } else {
+              _log('info', 'Response : ', 404, {error : 'No Id Given'});
+              d.reject({
+                status : 404,
+                data   : {error : 'No Id Given'}
+              });
+            }
+          } else {
+            _log('info', 'Response : ', 404, {error : 'Not a valid path!'});
+            d.reject({
+              status : 404,
+              data   : {error : 'Not a valid path!'}
+            });
+          }
+          return d.promise;
+        };
+      }
+
+      function _createMethodWithData(name, callback) {
+        return function(url, data, config) {
+          _log('info', name.toUpperCase() + ' : ', url);
+          if (data) {
+            _log('info', 'Data : ', data);
+          }
+          if (config) {
+            _log('info', 'Config : ', config);
+          }
+          let d = $q.defer(),
+              [r, p] = getResource(url);
+
+          if (r) {
+            let resourceId = p[r.key],
+                rData      = $mockStorage.getItem(r.id);
+
+            if (resourceId) {
+              let rIndex = rData.findIndex((item) => String(item[r.primaryKey]) === String(resourceId));
+              if (rIndex > -1) {
+                callback(d, r, p, data, rData, rIndex);
+              } else {
+                _log('info', 'Response : ', 404, {error : 'Not Found'});
+                d.reject({
+                  status : 404,
+                  data   : {error : 'Not Found'}
+                });
+              }
+            } else if (name === 'post') {
+              callback(d, r, p, data, rData);
+            } else {
+              _log('info', 'Response : ', 404, {error : 'No Id Given'});
+              d.reject({
+                status : 404,
+                data   : {error : 'No Id Given'}
+              });
+            }
+          } else {
+            _log('info', 'Response : ', 404, {error : 'Not a valid path!'});
+            d.reject({
+              status : 404,
+              data   : {error : 'Not a valid path!'}
+            });
+          }
+          return d.promise;
+        };
+      }
     }
   }
 
@@ -592,27 +532,21 @@
       };
       // ["pendingRequests", "get", "delete", "head", "jsonp", "post", "put", "patch", "defaults"]
       // ["get", "delete", "head", "jsonp", "post", "put", "patch"]
+
       Object.keys($delegate).filter((k)=> typeof $delegate[k] === 'function')
         .forEach((k)=> {
           wrapper[k] = function() {
-            return $delegate[k].apply($delegate, arguments);
+            if (typeof $mockRouter[k] === 'function') {
+              return $mockRouter[k].apply($mockRouter, arguments);
+            } else {
+              return $delegate[k].apply($delegate, arguments);
+            }
           };
         });
-      wrapper['get']    = function() {
-        return $mockRouter.get(...arguments);
-      };
-      wrapper['post']   = function() {
-        return $mockRouter.post(...arguments);
-      };
-      wrapper['put']    = function() {
-        return $mockRouter.put(...arguments);
-      };
-      wrapper['patch']  = function() {
-        return $mockRouter.patch(...arguments);
-      };
-      wrapper['delete'] = function() {
-        return $mockRouter.remove(...arguments);
-      };
+      Object.keys($delegate).filter((k)=> typeof $delegate[k] !== 'function')
+        .forEach((k)=> {
+          wrapper[k] = $delegate[k];
+        });
       return wrapper;
     }
   }
