@@ -12,6 +12,7 @@
       jscs       = require('gulp-jscs'),
       uglify     = require('gulp-uglify'),
       rimraf     = require('gulp-rimraf'),
+      serve      = require('gulp-serve'),
       sources    = 'ngMockStorage.js',
       destFile   = 'ngMockStorage.min.js',
       destDir    = './dist';
@@ -75,6 +76,13 @@
   gulp.task('watch', () => {
     return watch();
   });
+
+  gulp.task('copy:dist', () => {
+    return gulp.src(destDir + '/**/*')
+      .pipe(gulp.dest('./samples/node_modules/ngmockstorage/dist'));
+  });
+
+  gulp.task('serve', ['build', 'copy:dist'], serve('samples'));
 
   gulp.task('default', ['build']);
 })();
