@@ -5,7 +5,7 @@
 
 
 ## Version 
-Current version: 0.1.4
+Current version: 0.1.5
 
 ## Usage
 
@@ -32,6 +32,38 @@ $ bower install ngmockstorage
 })();
 ```
 
+#### Define the storage
+```js
+(function() {
+  'use strict';
+
+  angular.module('<project name>')
+    .config(configFn);
+
+  configFn.$inject = ['$mockStorageProvider'];
+
+  function configFn($mockStorageProvider) {
+    $mockStorageProvider.setStorageType('sessionStorage');
+  }
+})();
+```
+
+#### Define the storage key prefix
+```js
+(function() {
+  'use strict';
+
+  angular.module('<project name>')
+    .config(configFn);
+
+  configFn.$inject = ['$mockStorageProvider'];
+
+  function configFn($mockStorageProvider) {
+    $mockStorageProvider.setKeyPrefix('ngMockStorage-');
+  }
+})();
+```
+
 #### Define the namespace
 ```js
 (function() {
@@ -49,6 +81,16 @@ $ bower install ngmockstorage
 ```
 
 #### Add a resource
+
+The name format : \<parent resource name\>.\<resource name\>
+
+Options : 
+
+* __primaryKey__: ___(default: 'id')___ identifier of the resource
+* __key__: ___(default: 'id\<Resource name\>')___ param name in the url /\<resource name\>/:key
+* __collection__: ___(default: true)___ define if the resource is an object or a array
+
+
 ```js
 (function() {
   'use strict';
@@ -60,6 +102,36 @@ $ bower install ngmockstorage
 
   function configFn($mockRouterProvider) {
     $mockRouterProvider.addResource('todos');
+    $mockRouterProvider.addResource('todos.infos', {collection : false});
+  }
+})();
+```
+
+#### Load datas
+```js
+(function() {
+  'use strict';
+
+  angular.module('<project name>')
+    .config(configFn);
+
+  configFn.$inject = ['$mockRouterProvider'];
+
+  function configFn($mockRouterProvider) {
+    $mockRouterProvider.addResource('todos');
+
+    $mockRouterProvider.loadDatas('todos', [
+      {
+        id     : 1,
+        title  : 'Todos 1',
+        isDone : false
+      },
+      {
+        id     : 2,
+        title  : 'Todos 2',
+        isDone : false
+      }
+    ]);
   }
 })();
 ```
@@ -91,6 +163,11 @@ $ bower install ngmockstorage
 * Write tests
 
 ## ChangeLog
+* 0.1.5
+```
+Library :
+  - Add loadDatas method
+```
 * 0.1.4
 ```
 Library : 
