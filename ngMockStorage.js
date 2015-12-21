@@ -2,7 +2,8 @@
   'use strict';
 
   StorageProvider.$inject = ['$windowProvider'];
-  RouterProvider.$inject  = ['$mockStorageProvider'];
+  RouterProvider.$inject  = ['$mockStorageProvider', '$httpProvider'];
+  ModuleConfig.$inject    = ['$provide', '$httpProvider'];
 
   /**
    * @ngdoc overview
@@ -29,7 +30,7 @@
 
     .provider('$mockRouter', RouterProvider)
 
-    .config(['$provide', ModuleConfig]);
+    .config(ModuleConfig);
 
 
   function StorageProvider($windowProvider) {
@@ -156,21 +157,19 @@
     }
   }
 
-  function RouterProvider($mockStorageProvider) {
+  function RouterProvider($mockStorageProvider, $httpProvider) {
     let provider,
         namespace           = '',
         logLevel            = 0,
         availablesLogLevels = {error : 0, warn : 1, info : 2, debug : 3},
-        resources           = [],
-        defaults            = {};
+        resources           = [];
 
-    RouterService.$inject = ['$log', '$q', '$mockStorage'];
+    RouterService.$inject = ['$log', '$q', '$mockStorage', '$injector'];
 
     provider = {
       setNamespace : setNamespace,
       setLogLevel  : setLogLevel,
       addResource  : addResource,
-      defaults     : defaults,
       $get         : RouterService
     };
 
@@ -288,15 +287,25 @@
       return keys;
     }
 
-    function RouterService($log, $q, $mockStorage) {
-      let service = {
-        get         : get(),
-        post        : post(),
-        put         : put(),
-        delete      : remove(),
-        patch       : patch(),
-        getResource : getResource
-      };
+    function RouterService($log, $q, $mockStorage, $injector) {
+      let interceptors         = $httpProvider.interceptors,
+          reversedInterceptors = [],
+          defaults             = $httpProvider.defaults,
+          service              = {
+            get          : get(),
+            post         : post(),
+            put          : put(),
+            delete       : remove(),
+            patch        : patch(),
+            getResource  : getResource,
+            interceptors : interceptors
+          };
+
+
+      interceptors.forEach(function(interceptorFactory) {
+        reversedInterceptors.unshift((typeof interceptorFactory === 'string') ?
+          $injector.get(interceptorFactory) : $injector.invoke(interceptorFactory));
+      });
 
       return service;
 
@@ -484,12 +493,15 @@
             data   = fn(data, headers, status);
           }
         }
+        if (typeof data === 'string') {
+          data = JSON.parse(data);
+        }
         return data;
       }
 
       function _createMethodWithoutData(name, callback) {
         return function(url, config) {
-          return _createMethod(url, null, config, function(d, r, p, config) {
+          return _createMethod(name, url, null, config, function(d, r, p, config) {
             let resourceId = p[r.key],
                 rData      = $mockStorage.getItem(r.id);
 
@@ -519,7 +531,7 @@
 
       function _createMethodWithData(name, callback) {
         return function(url, data, config) {
-          return _createMethod(url, data, config, function(d, r, p, config) {
+          return _createMethod(name, url, data, config, function(d, r, p, config) {
             let resourceId = p[r.key],
                 rData      = $mockStorage.getItem(r.id);
 
@@ -549,7 +561,7 @@
         };
       }
 
-      function _createMethod(url, data, config, callback) {
+      function _createMethod(name, url, data, config, callback) {
         _log('info', name.toUpperCase() + ' : ', url);
         if (data) {
           _log('info', 'Data : ', data);
@@ -557,15 +569,14 @@
         if (config) {
           _log('info', 'Config : ', config);
         }
-        let d = $q.defer(),
+        let d       = $q.defer(),
+            promise = d.promise,
             [r, p] = getResource(url);
 
         config = Object.assign({
           transformRequest  : defaults.transformRequest,
           transformResponse : defaults.transformResponse
         }, config);
-
-        //config.headers = _mergeHeaders(config);
 
         if (r) {
           callback(d, r, p, config);
@@ -576,12 +587,21 @@
             data   : {error : 'Not a valid path!'}
           });
         }
-        return d.promise;
+
+        promise = promise.then(config.transformResponse, config.transformResponse);
+
+        reversedInterceptors.forEach(function(interceptor) {
+          if (interceptor.response || interceptor.responseError) {
+            promise = promise.then(interceptor.response, interceptor.responseError);
+          }
+        });
+
+        return promise;
       }
     }
   }
 
-  function ModuleConfig($provide) {
+  function ModuleConfig($provide, $httpProvider) {
     httpDecorator.$inject = ['$delegate', '$mockRouter'];
     $provide.decorator('$http', httpDecorator);
 
@@ -589,8 +609,14 @@
       let wrapper = function() {
         return $delegate.apply($delegate, arguments);
       };
-      // ["pendingRequests", "get", "delete", "head", "jsonp", "post", "put", "patch", "defaults"]
-      // ["get", "delete", "head", "jsonp", "post", "put", "patch"]
+
+      $mockRouter.interceptors = $httpProvider.interceptors;
+      $mockRouter.defaults     = $httpProvider.defaults;
+
+      Object.keys($delegate).filter((k)=> typeof $delegate[k] !== 'function')
+        .forEach((k)=> {
+          wrapper[k] = $delegate[k];
+        });
 
       Object.keys($delegate).filter((k)=> typeof $delegate[k] === 'function')
         .forEach((k)=> {
@@ -602,10 +628,7 @@
             }
           };
         });
-      Object.keys($delegate).filter((k)=> typeof $delegate[k] !== 'function')
-        .forEach((k)=> {
-          wrapper[k] = $delegate[k];
-        });
+
       return wrapper;
     }
   }
