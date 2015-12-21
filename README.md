@@ -5,7 +5,7 @@
 
 
 ## Version 
-Current version: 0.1.2
+Current version: 0.1.4
 
 ## Todo
 * Write a proper README
@@ -15,6 +15,16 @@ Current version: 0.1.2
 * Load datas
 
 ## ChangeLog
+* 0.1.4
+```
+Library : 
+  - Add interceptors support
+  - Add request/response transformations support
+  
+Samples : 
+  - Add interceptors
+  - Add transformRequest & TransformResponse
+```
 * 0.1.3
 ```
 Remove some duplicate code
