@@ -2,13 +2,11 @@
   'use strict';
 
   angular.module('todomvc')
-    .config(configFn);
+    .run(runFn);
 
-  configFn.$inject = ['$mockRouterProvider'];
+  runFn.$inject = ['$http'];
 
-  function configFn($mockRouterProvider) {
-    $mockRouterProvider.setNamespace('api');
-    $mockRouterProvider.setLogLevel('info');
-    $mockRouterProvider.addResource('todos');
+  function runFn($http) {
+    $http.defaults.headers.common.Authorization = 'Basic YmVlcDpib29w';
   }
 })();
