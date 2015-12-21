@@ -18,7 +18,7 @@ $ npm install ngmockstorage
 
 #### Bower
 ```sh
-$ bower install ngMockStorage
+$ bower install ngmockstorage
 ```
 
 ### Configuration
@@ -88,6 +88,7 @@ $ bower install ngMockStorage
 * Write a proper README
 * Optimize code
 * Load datas
+* Write tests
 
 ## ChangeLog
 * 0.1.4
