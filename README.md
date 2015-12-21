@@ -15,6 +15,11 @@ Current version: 0.1.2
 * Load datas
 
 ## ChangeLog
+* 0.1.3
+```
+Remove some duplicate code
+Add a serve task in gulp
+```
 * 0.1.2
 ```
 Remove some duplicate code

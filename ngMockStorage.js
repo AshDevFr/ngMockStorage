@@ -161,7 +161,8 @@
         namespace           = '',
         logLevel            = 0,
         availablesLogLevels = {error : 0, warn : 1, info : 2, debug : 3},
-        resources           = [];
+        resources           = [],
+        defaults            = {};
 
     RouterService.$inject = ['$log', '$q', '$mockStorage'];
 
@@ -169,6 +170,7 @@
       setNamespace : setNamespace,
       setLogLevel  : setLogLevel,
       addResource  : addResource,
+      defaults     : defaults,
       $get         : RouterService
     };
 
@@ -295,7 +297,6 @@
         patch       : patch(),
         getResource : getResource
       };
-
 
       return service;
 
@@ -429,16 +430,66 @@
         }
       }
 
+      function _parseHeaders(headers) {
+        var parsed = {},
+            i;
+
+        function _fillInParsed(key, val) {
+          if (key) {
+            parsed[key] = parsed[key] ? parsed[key] + ', ' + val : val;
+          }
+        }
+
+        if (typeof headers === 'string') {
+          headers.split('\n').forEach(function(line) {
+            i = line.indexOf(':');
+            _fillInParsed(line.substr(0, i).trim().toLowerCase(), line.substr(i + 1).trim());
+          });
+        } else if (typeof headers === 'object') {
+          Object.keys(headers).forEach(function(headerKey) {
+            _fillInParsed(headerKey.toLowerCase(), headers[headerKey].trim());
+          });
+        }
+
+        return parsed;
+      }
+
+      function _headersGetter(headers) {
+        var headersObj;
+
+        return function(name) {
+          if (!headersObj) {
+            headersObj = _parseHeaders(headers);
+          }
+
+          if (name) {
+            var value = headersObj[name.toLowerCase()];
+            if (value === void 0) {
+              value = null;
+            }
+            return value;
+          }
+
+          return headersObj;
+        };
+      }
+
+      function _transformData(data, headers, status, fns) {
+        if (typeof fns === 'function') {
+          return fns(data, headers, status);
+        } else if (fns) {
+          let i;
+          for (i = 0; i < fns.length; i++) {
+            let fn = fns[i];
+            data   = fn(data, headers, status);
+          }
+        }
+        return data;
+      }
+
       function _createMethodWithoutData(name, callback) {
         return function(url, config) {
-          _log('info', name.toUpperCase() + ' : ', url);
-          if (config) {
-            _log('info', 'Config : ', config);
-          }
-          let d = $q.defer(),
-              [r, p] = getResource(url);
-
-          if (r) {
+          return _createMethod(url, null, config, function(d, r, p, config) {
             let resourceId = p[r.key],
                 rData      = $mockStorage.getItem(r.id);
 
@@ -462,32 +513,17 @@
                 data   : {error : 'No Id Given'}
               });
             }
-          } else {
-            _log('info', 'Response : ', 404, {error : 'Not a valid path!'});
-            d.reject({
-              status : 404,
-              data   : {error : 'Not a valid path!'}
-            });
-          }
-          return d.promise;
+          });
         };
       }
 
       function _createMethodWithData(name, callback) {
         return function(url, data, config) {
-          _log('info', name.toUpperCase() + ' : ', url);
-          if (data) {
-            _log('info', 'Data : ', data);
-          }
-          if (config) {
-            _log('info', 'Config : ', config);
-          }
-          let d = $q.defer(),
-              [r, p] = getResource(url);
-
-          if (r) {
+          return _createMethod(url, data, config, function(d, r, p, config) {
             let resourceId = p[r.key],
                 rData      = $mockStorage.getItem(r.id);
+
+            data = _transformData(data, _headersGetter(config.headers), undefined, config.transformRequest);
 
             if (resourceId) {
               let rIndex = rData.findIndex((item) => String(item[r.primaryKey]) === String(resourceId));
@@ -509,15 +545,38 @@
                 data   : {error : 'No Id Given'}
               });
             }
-          } else {
-            _log('info', 'Response : ', 404, {error : 'Not a valid path!'});
-            d.reject({
-              status : 404,
-              data   : {error : 'Not a valid path!'}
-            });
-          }
-          return d.promise;
+          });
         };
+      }
+
+      function _createMethod(url, data, config, callback) {
+        _log('info', name.toUpperCase() + ' : ', url);
+        if (data) {
+          _log('info', 'Data : ', data);
+        }
+        if (config) {
+          _log('info', 'Config : ', config);
+        }
+        let d = $q.defer(),
+            [r, p] = getResource(url);
+
+        config = Object.assign({
+          transformRequest  : defaults.transformRequest,
+          transformResponse : defaults.transformResponse
+        }, config);
+
+        //config.headers = _mergeHeaders(config);
+
+        if (r) {
+          callback(d, r, p, config);
+        } else {
+          _log('info', 'Response : ', 404, {error : 'Not a valid path!'});
+          d.reject({
+            status : 404,
+            data   : {error : 'Not a valid path!'}
+          });
+        }
+        return d.promise;
       }
     }
   }
