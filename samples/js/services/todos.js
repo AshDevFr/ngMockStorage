@@ -41,7 +41,13 @@
     }
 
     function create(todo) {
-      return $http.post(URI, todo);
+      return $http.post(URI, todo, {
+        transformResponse : function(response) {
+          var resp = angular.fromJson(response);
+          delete resp.data.truc;
+          return resp;
+        }
+      });
     }
 
     function remove(todo) {
