@@ -170,6 +170,7 @@
       setNamespace : setNamespace,
       setLogLevel  : setLogLevel,
       addResource  : addResource,
+      loadDatas    : loadDatas,
       $get         : RouterService
     };
 
@@ -192,7 +193,7 @@
     }
 
     function addResource(n, o) {
-      let config, resource;
+      let config, resource, parentId;
       if (typeof n !== 'string') {
         throw new TypeError('[ngMockRouter] - Provider.addResource expects string, [object].');
       }
@@ -201,14 +202,21 @@
         throw new TypeError('[ngMockRouter] - Provider.addResource expects string, [object].');
       }
 
+      if (n.indexOf('.') > -1) {
+        let pos  = n.lastIndexOf('.');
+        parentId = n.substring(0, pos);
+        n        = n.substring(pos + 1);
+      }
+
       config = Object.assign({
         primaryKey : 'id',
         collection : true,
-        parent     : null,
         key        : _getKey(n)
       }, o || {});
 
-      resource = _getResource(n, config.parent);
+      config.parent = parentId;
+
+      resource = _getResource(n);
 
       if (resource) {
         throw new TypeError('[ngMockRouter] - Provider.addResource: Resource ' + n + ' already exist.');
@@ -241,13 +249,25 @@
       }
     }
 
-    function _getResource(n, p) {
-      return resources.find((r)=> {
-        if (p) {
-          return (r.name === n && r.parent === p);
+    function loadDatas(n, d) {
+      let r = _getResource(n);
+
+      if (r) {
+        if (r.collection && Array.isArray(d)) {
+          $mockStorageProvider.setItem(r.id, d);
+        } else if (!r.collection && !Array.isArray(d) && typeof d === 'object') {
+          $mockStorageProvider.setItem(r.id, d);
         } else {
-          return r.name === n;
+          throw new TypeError('[ngMockRouter] - Provider.loadDatas: Datas not valid.');
         }
+      } else {
+        throw new TypeError('[ngMockRouter] - Provider.loadDatas: Resource ' + n + ' do not exist.');
+      }
+    }
+
+    function _getResource(n) {
+      return resources.find((r)=> {
+        return r.id === n;
       });
     }
 
@@ -268,7 +288,7 @@
     function _getId(r) {
       let id = '';
       if (r.parent) {
-        id += _getResource(r.parent).id + '_';
+        id += _getResource(r.parent).id + '.';
       }
       id += r.name;
 
