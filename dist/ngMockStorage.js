@@ -194,7 +194,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
       if (typeof l !== 'string') {
         throw new TypeError('[ngMockRouter] - Provider.setLogLevel expects a string (error|warning|info).');
       }
-      if (Object.keys(availablesLogLevels).indexOf(l) > -1) {
+      if (Object.keys(availablesLogLevels).includes(l)) {
         logLevel = availablesLogLevels[l];
       }
     }
@@ -211,7 +211,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
         throw new TypeError('[ngMockRouter] - Provider.addResource expects string, [object].');
       }
 
-      if (n.indexOf('.') > -1) {
+      if (n.includes('.')) {
         var pos = n.lastIndexOf('.');
         parentId = n.substring(0, pos);
         n = n.substring(pos + 1);
@@ -242,7 +242,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
         if (config.parent) {
           var parent = _getResource(config.parent);
           if (parent) {
-            if (newResource.collection && parent.keys.indexOf(newResource.key) > -1) {
+            if (newResource.collection && parent.keys.includes(newResource.key)) {
               throw new TypeError('[ngMockRouter] - Provider.addResource: key ' + newResource.key + ' already exist. You can specify another one with the option key');
             }
             newResource.parent = config.parent;
@@ -264,7 +264,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
       if (r) {
         if (r.collection && Array.isArray(d)) {
           $mockStorageProvider.setItem(r.id, d);
-        } else if (!r.collection && !Array.isArray(d) && (typeof d === 'undefined' ? 'undefined' : _typeof(d)) === 'object') {
+        } else if (!r.collection && (typeof d === 'undefined' ? 'undefined' : _typeof(d)) === 'object') {
           $mockStorageProvider.setItem(r.id, d);
         } else {
           throw new TypeError('[ngMockRouter] - Provider.loadDatas: Datas not valid.');
@@ -352,7 +352,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
       function post() {
         return _createMethodWithData('post', function (d, r, p, data, rData) {
           var id = Math.random().toString(36).substring(2);
-          if (Array.isArray(rData)) {
+          if (Array.isArray(rData) && r.collection) {
             data[r.primaryKey] = id;
             rData.push(data);
             $mockStorage.setItem(r.id, rData);
@@ -373,13 +373,22 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
 
       function put() {
         return _createMethodWithData('put', function (d, r, p, data, rData, rIndex) {
-          rData[rIndex] = data;
-          $mockStorage.setItem(r.id, rData);
-          _log('info', 'Response : ', 200, rData[rIndex]);
-          d.resolve({
-            status: 200,
-            data: rData[rIndex]
-          });
+          if (r.collection) {
+            rData[rIndex] = data;
+            $mockStorage.setItem(r.id, rData);
+            _log('info', 'Response : ', 200, rData[rIndex]);
+            d.resolve({
+              status: 200,
+              data: rData[rIndex]
+            });
+          } else {
+            $mockStorage.setItem(r.id, data);
+            _log('info', 'Response : ', 200, data);
+            d.resolve({
+              status: 200,
+              data: data
+            });
+          }
         });
       }
 
@@ -397,13 +406,23 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
 
       function patch() {
         return _createMethodWithData('patch', function (d, r, p, data, rData, rIndex) {
-          _extends(rData[rIndex], data);
-          $mockStorage.setItem(r.id, rData);
-          _log('info', 'Response : ', 200, rData[rIndex]);
-          d.resolve({
-            status: 200,
-            data: rData[rIndex]
-          });
+          if (r.collection) {
+            _extends(rData[rIndex], data);
+            $mockStorage.setItem(r.id, rData);
+            _log('info', 'Response : ', 200, rData[rIndex]);
+            d.resolve({
+              status: 200,
+              data: rData[rIndex]
+            });
+          } else {
+            _extends(rData, data);
+            $mockStorage.setItem(r.id, rData);
+            _log('info', 'Response : ', 200, rData);
+            d.resolve({
+              status: 200,
+              data: rData
+            });
+          }
         });
       }
 
@@ -457,7 +476,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
       }
 
       function _log(l) {
-        if (Object.keys(availablesLogLevels).indexOf(l) > -1 && logLevel >= availablesLogLevels[l]) {
+        if (Object.keys(availablesLogLevels).includes(l) && logLevel >= availablesLogLevels[l]) {
           for (var _len = arguments.length, msg = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
             msg[_key - 1] = arguments[_key];
           }
@@ -566,7 +585,9 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
 
             data = _transformData(data, _headersGetter(config.headers), undefined, config.transformRequest);
 
-            if (resourceId) {
+            if (name === 'post' || !r.collection) {
+              callback(d, r, p, data, rData);
+            } else if (resourceId) {
               var rIndex = rData.findIndex(function (item) {
                 return String(item[r.primaryKey]) === String(resourceId);
               });
@@ -579,8 +600,6 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
                   data: { error: 'Not Found' }
                 });
               }
-            } else if (name === 'post') {
-              callback(d, r, p, data, rData);
             } else {
               _log('info', 'Response : ', 404, { error: 'No Id Given' });
               d.reject({

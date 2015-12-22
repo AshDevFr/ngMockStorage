@@ -5,7 +5,7 @@
 
 
 ## Version 
-Current version: 0.1.8
+Current version: 0.1.9
 
 ## Usage
 
@@ -165,6 +165,10 @@ Options :
 * Write tests
 
 ## ChangeLog
+* 0.1.9
+```
+Fix issue with put/patch when the resource is not a collection
+```
 * 0.1.8
 ```
 Add Object.assign polyfill
