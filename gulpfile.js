@@ -10,11 +10,13 @@
       babel      = require('babelify'),
       jshint     = require('gulp-jshint'),
       jscs       = require('gulp-jscs'),
+      rename     = require('gulp-rename'),
       uglify     = require('gulp-uglify'),
       rimraf     = require('gulp-rimraf'),
       serve      = require('gulp-serve'),
       sources    = 'ngMockStorage.js',
-      destFile   = 'ngMockStorage.min.js',
+      destFile   = 'ngMockStorage.js',
+      destMinFile   = 'ngMockStorage.min.js',
       destDir    = './dist';
 
   function rebundle(bundler) {
@@ -26,6 +28,8 @@
       .pipe(source(destFile))
       .pipe(buffer())
       .pipe(sourcemaps.init({loadMaps : true}))
+      .pipe(gulp.dest(destDir))
+      .pipe(rename(destMinFile))
       .pipe(uglify())
       .pipe(sourcemaps.write('./'))
       .pipe(gulp.dest(destDir));
