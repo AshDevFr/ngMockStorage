@@ -9,6 +9,13 @@
 
   function Todos($http) {
     var URI     = '/api/todos',
+        OPTIONS = {
+          transformResponse : function(response) {
+            var resp = angular.fromJson(response);
+            delete resp.data.truc;
+            return resp;
+          }
+        },
         service = {
           fetch    : fetch,
           fetchOne : fetchOne,
@@ -25,29 +32,23 @@
     }
 
     function fetchOne(todoId) {
-      return $http.get(URI + '/' + todoId);
+      return $http.get(URI + '/' + todoId, OPTIONS);
     }
 
     function update(todo) {
       if (typeof todo.id !== 'undefined') {
-        return $http.put(URI + '/' + todo.id, todo);
+        return $http.put(URI + '/' + todo.id, todo, OPTIONS);
       } else {
         return create(todo);
       }
     }
 
     function patch(id, data) {
-      return $http.patch(URI + '/' + id, data);
+      return $http.patch(URI + '/' + id, data, OPTIONS);
     }
 
     function create(todo) {
-      return $http.post(URI, todo, {
-        transformResponse : function(response) {
-          var resp = angular.fromJson(response);
-          delete resp.data.truc;
-          return resp;
-        }
-      });
+      return $http.post(URI, todo, OPTIONS);
     }
 
     function remove(todo) {
