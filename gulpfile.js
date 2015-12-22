@@ -1,23 +1,23 @@
 (function() {
   'use strict';
-  var gulp       = require('gulp'),
-      gutil      = require('gulp-util'),
-      sourcemaps = require('gulp-sourcemaps'),
-      source     = require('vinyl-source-stream'),
-      buffer     = require('vinyl-buffer'),
-      browserify = require('browserify'),
-      watchify   = require('watchify'),
-      babel      = require('babelify'),
-      jshint     = require('gulp-jshint'),
-      jscs       = require('gulp-jscs'),
-      rename     = require('gulp-rename'),
-      uglify     = require('gulp-uglify'),
-      rimraf     = require('gulp-rimraf'),
-      serve      = require('gulp-serve'),
-      sources    = 'ngMockStorage.js',
-      destFile   = 'ngMockStorage.js',
-      destMinFile   = 'ngMockStorage.min.js',
-      destDir    = './dist';
+  var gulp = require('gulp'),
+    gutil = require('gulp-util'),
+    sourcemaps = require('gulp-sourcemaps'),
+    source = require('vinyl-source-stream'),
+    buffer = require('vinyl-buffer'),
+    browserify = require('browserify'),
+    watchify = require('watchify'),
+    babel = require('babelify'),
+    jshint = require('gulp-jshint'),
+    jscs = require('gulp-jscs'),
+    rename = require('gulp-rename'),
+    uglify = require('gulp-uglify'),
+    rimraf = require('gulp-rimraf'),
+    serve = require('gulp-serve'),
+    sources = 'ngMockStorage.js',
+    destFile = 'ngMockStorage.js',
+    destMinFile = 'ngMockStorage.min.js',
+    destDir = './dist';
 
   function rebundle(bundler) {
     return bundler.bundle()
@@ -40,14 +40,20 @@
 
 
     if (watch) {
-      bundler = watchify(browserify(sources, {debug : true}).transform(babel, {presets : ['es2015']}));
+      bundler = watchify(browserify(sources, {debug : true}).transform(babel, {
+        presets : ['es2015'],
+        plugins : ['transform-object-assign']
+      }));
       bundler.on('update', function() {
         gutil.log('Bundling ...');
         rebundle(bundler);
         gulp.start('copy:dist');
       });
     } else {
-      bundler = browserify(sources, {debug : true}).transform(babel, {presets : ['es2015']});
+      bundler = browserify(sources, {debug : true}).transform(babel, {
+        presets : ['es2015'],
+        plugins : ['transform-object-assign']
+      });
     }
 
     return rebundle(bundler);
