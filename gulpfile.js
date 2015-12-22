@@ -40,7 +40,7 @@
 
 
     if (watch) {
-      bundler = watchify(browserify(sources, {debug : true}).transform(babel, {
+      bundler = watchify(browserify([require.resolve('babel-polyfill'), sources], {debug : true}).transform(babel, {
         presets : ['es2015'],
         plugins : ['transform-object-assign']
       }));
@@ -50,7 +50,7 @@
         gulp.start('copy:dist');
       });
     } else {
-      bundler = browserify(sources, {debug : true}).transform(babel, {
+      bundler = browserify([require.resolve('babel-polyfill'), sources], {debug : true}).transform(babel, {
         presets : ['es2015'],
         plugins : ['transform-object-assign']
       });
