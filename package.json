@@ -1,6 +1,6 @@
 {
   "name": "ngmockstorage",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Angular $http decorator to provide a browser side mock service",
   "main": "ngMockStorage.js",
   "scripts": {
@@ -34,6 +34,7 @@
     "gulp-concat": "^2.6.0",
     "gulp-jscs": "^3.0.2",
     "gulp-jshint": "^2.0.0",
+    "gulp-rename": "^1.2.2",
     "gulp-rimraf": "^0.2.0",
     "gulp-serve": "^1.2.0",
     "gulp-sourcemaps": "^1.6.0",

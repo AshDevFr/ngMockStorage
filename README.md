@@ -5,7 +5,7 @@
 
 
 ## Version 
-Current version: 0.1.5
+Current version: 0.1.6
 
 ## Usage
 
@@ -165,6 +165,10 @@ Options :
 * Write tests
 
 ## ChangeLog
+* 0.1.6
+```
+Add a not uglified file in dist
+```
 * 0.1.5
 ```
 Library :
