@@ -12,7 +12,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
 
   StorageProvider.$inject = ['$windowProvider'];
   RouterProvider.$inject = ['$mockStorageProvider', '$httpProvider'];
-  ModuleConfig.$inject = ['$provide', '$httpProvider'];
+  ModuleConfig.$inject = ['$provide'];
 
   /**
    * @ngdoc overview
@@ -526,7 +526,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
 
       function _createMethodWithoutData(name, callback) {
         return function (url, config) {
-          return _createMethod(name, url, null, config, function (d, r, p, config) {
+          return _createMethod(name, url, null, config, function (d, r, p) {
             var resourceId = p[r.key],
                 rData = $mockStorage.getItem(r.id);
 
@@ -608,35 +608,32 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
         var r = _getResource3[0];
         var p = _getResource3[1];
 
-        config = Object.assign({
-          transformRequest: defaults.transformRequest,
-          transformResponse: defaults.transformResponse
-        }, config);
-
         if (r) {
+          config = Object.assign({
+            transformRequest: defaults.transformRequest,
+            transformResponse: defaults.transformResponse
+          }, config);
+
           callback(d, r, p, config);
-        } else {
-          _log('info', 'Response : ', 404, { error: 'Not a valid path!' });
-          d.reject({
-            status: 404,
-            data: { error: 'Not a valid path!' }
+
+          promise = promise.then(config.transformResponse, config.transformResponse);
+
+          reversedInterceptors.forEach(function (interceptor) {
+            if (interceptor.response || interceptor.responseError) {
+              promise = promise.then(interceptor.response, interceptor.responseError);
+            }
           });
+        } else {
+          _log('info', 'Not a valid path! Call $http instead.');
+          promise = null;
         }
-
-        promise = promise.then(config.transformResponse, config.transformResponse);
-
-        reversedInterceptors.forEach(function (interceptor) {
-          if (interceptor.response || interceptor.responseError) {
-            promise = promise.then(interceptor.response, interceptor.responseError);
-          }
-        });
 
         return promise;
       }
     }
   }
 
-  function ModuleConfig($provide, $httpProvider) {
+  function ModuleConfig($provide) {
     httpDecorator.$inject = ['$delegate', '$mockRouter'];
     $provide.decorator('$http', httpDecorator);
 
@@ -645,13 +642,11 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
         return $delegate.apply($delegate, arguments);
       };
 
-      $mockRouter.interceptors = $httpProvider.interceptors;
-      $mockRouter.defaults = $httpProvider.defaults;
-
       Object.keys($delegate).filter(function (k) {
         return typeof $delegate[k] !== 'function';
       }).forEach(function (k) {
         wrapper[k] = $delegate[k];
+        wrapper['original' + k] = $delegate[k];
       });
 
       Object.keys($delegate).filter(function (k) {
@@ -659,7 +654,12 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
       }).forEach(function (k) {
         wrapper[k] = function () {
           if (typeof $mockRouter[k] === 'function') {
-            return $mockRouter[k].apply($mockRouter, arguments);
+            var promise = $mockRouter[k].apply($mockRouter, arguments);
+            if (promise) {
+              return promise;
+            } else {
+              return $delegate[k].apply($delegate, arguments);
+            }
           } else {
             return $delegate[k].apply($delegate, arguments);
           }
