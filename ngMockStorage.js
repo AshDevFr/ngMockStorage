@@ -2,8 +2,8 @@
   'use strict';
 
   StorageProvider.$inject = ['$windowProvider'];
-  RouterProvider.$inject  = ['$mockStorageProvider', '$httpProvider'];
-  ModuleConfig.$inject    = ['$provide', '$httpProvider'];
+  RouterProvider.$inject = ['$mockStorageProvider', '$httpProvider'];
+  ModuleConfig.$inject = ['$provide'];
 
   /**
    * @ngdoc overview
@@ -35,22 +35,22 @@
 
   function StorageProvider($windowProvider) {
     let provider,
-        $window          = $windowProvider.$get(),
-        storageKeyPrefix = 'ngMockStorage-',
-        storageType      = 'localStorage',
-        serializer       = angular.toJson,
-        deserializer     = angular.fromJson;
+      $window = $windowProvider.$get(),
+      storageKeyPrefix = 'ngMockStorage-',
+      storageType = 'localStorage',
+      serializer = angular.toJson,
+      deserializer = angular.fromJson;
 
     StorageService.$inject = ['$window', '$log'];
 
     provider = {
-      setStorageType  : setStorageType,
-      setKeyPrefix    : setKeyPrefix,
-      setSerializer   : setSerializer,
+      setStorageType : setStorageType,
+      setKeyPrefix : setKeyPrefix,
+      setSerializer : setSerializer,
       setDeserializer : setDeserializer,
-      setItem         : setItem,
-      clear           : clear,
-      $get            : StorageService
+      setItem : setItem,
+      clear : clear,
+      $get : StorageService
     };
 
     return provider;
@@ -104,18 +104,18 @@
 
       if (isStorageSupported(storageType)) {
         service = {
-          getItem    : getItem,
-          setItem    : setItem,
+          getItem : getItem,
+          setItem : setItem,
           removeItem : removeItem,
-          clear      : clear
+          clear : clear
         };
       } else {
         $log.warn('This browser does not support Web Storage!');
         service = {
-          setItem    : angular.noop,
-          getItem    : angular.noop,
+          setItem : angular.noop,
+          getItem : angular.noop,
           removeItem : angular.noop,
-          clear      : angular.noop
+          clear : angular.noop
         };
       }
 
@@ -159,19 +159,19 @@
 
   function RouterProvider($mockStorageProvider, $httpProvider) {
     let provider,
-        namespace           = '',
-        logLevel            = 0,
-        availablesLogLevels = {error : 0, warn : 1, info : 2, debug : 3},
-        resources           = [];
+      namespace = '',
+      logLevel = 0,
+      availablesLogLevels = {error : 0, warn : 1, info : 2, debug : 3},
+      resources = [];
 
     RouterService.$inject = ['$log', '$q', '$mockStorage', '$injector'];
 
     provider = {
       setNamespace : setNamespace,
-      setLogLevel  : setLogLevel,
-      addResource  : addResource,
-      loadDatas    : loadDatas,
-      $get         : RouterService
+      setLogLevel : setLogLevel,
+      addResource : addResource,
+      loadDatas : loadDatas,
+      $get : RouterService
     };
 
     return provider;
@@ -203,15 +203,15 @@
       }
 
       if (n.indexOf('.') > -1) {
-        let pos  = n.lastIndexOf('.');
+        let pos = n.lastIndexOf('.');
         parentId = n.substring(0, pos);
-        n        = n.substring(pos + 1);
+        n = n.substring(pos + 1);
       }
 
       config = Object.assign({
         primaryKey : 'id',
         collection : true,
-        key        : _getKey(n)
+        key : _getKey(n)
       }, o || {});
 
       config.parent = parentId;
@@ -226,9 +226,9 @@
         };
 
         newResource.primaryKey = config.primaryKey;
-        newResource.key        = config.key;
+        newResource.key = config.key;
         newResource.collection = config.collection;
-        newResource.data       = config.collection ? [] : {};
+        newResource.data = config.collection ? [] : {};
 
         if (config.parent) {
           let parent = _getResource(config.parent);
@@ -240,7 +240,7 @@
           }
         }
         newResource.path = _getPath(newResource);
-        newResource.id   = _getId(newResource);
+        newResource.id = _getId(newResource);
         newResource.keys = _getKeys(newResource);
 
         $mockStorageProvider.setItem(newResource.id, newResource.data);
@@ -266,9 +266,7 @@
     }
 
     function _getResource(n) {
-      return resources.find((r)=> {
-        return r.id === n;
-      });
+      return resources.find(r => r.id === n);
     }
 
     function _getKey(n) {
@@ -308,18 +306,18 @@
     }
 
     function RouterService($log, $q, $mockStorage, $injector) {
-      let interceptors         = $httpProvider.interceptors,
-          reversedInterceptors = [],
-          defaults             = $httpProvider.defaults,
-          service              = {
-            get          : get(),
-            post         : post(),
-            put          : put(),
-            delete       : remove(),
-            patch        : patch(),
-            getResource  : getResource,
-            interceptors : interceptors
-          };
+      let interceptors = $httpProvider.interceptors,
+        reversedInterceptors = [],
+        defaults = $httpProvider.defaults,
+        service = {
+          get : get(),
+          post : post(),
+          put : put(),
+          delete : remove(),
+          patch : patch(),
+          getResource : getResource,
+          interceptors : interceptors
+        };
 
 
       interceptors.forEach(function(interceptorFactory) {
@@ -337,7 +335,7 @@
           _log('info', 'Response : ', 200, rData);
           d.resolve({
             status : 200,
-            data   : rData
+            data : rData
           });
         });
       }
@@ -352,13 +350,13 @@
             _log('info', 'Response : ', 200, data);
             d.resolve({
               status : 200,
-              data   : data
+              data : data
             });
           } else {
             _log('info', 'Response : ', 405, {error : 'Method Not Allowed'});
             d.reject({
               status : 405,
-              data   : {error : 'Method Not Allowed'}
+              data : {error : 'Method Not Allowed'}
             });
           }
         });
@@ -371,7 +369,7 @@
           _log('info', 'Response : ', 200, rData[rIndex]);
           d.resolve({
             status : 200,
-            data   : rData[rIndex]
+            data : rData[rIndex]
           });
         });
       }
@@ -383,7 +381,7 @@
           _log('info', 'Response : ', 200, rData);
           d.resolve({
             status : 200,
-            data   : rData
+            data : rData
           });
         });
       }
@@ -395,13 +393,13 @@
           _log('info', 'Response : ', 200, rData[rIndex]);
           d.resolve({
             status : 200,
-            data   : rData[rIndex]
+            data : rData[rIndex]
           });
         });
       }
 
       function getResource(path) {
-        path  = ('/' + path + '/').replace(/\/\//g, '/');
+        path = ('/' + path + '/').replace(/\/\//g, '/');
         let r = resources.find((r) => {
           return _getRegex(r.path).test(path);
         });
@@ -423,12 +421,12 @@
 
       function _getParams(path, r) {
         let i,
-            params = {},
-            m      = path.match(_getRegex(r.path));
+          params = {},
+          m = path.match(_getRegex(r.path));
 
         for (i = 1; i < m.length; i++) {
           let key = r.keys[i - 1],
-              val = _decodeParam(m[i]);
+            val = _decodeParam(m[i]);
 
           if (val !== undefined || !(hasOwnProperty.call(params, key))) {
             params[key] = val;
@@ -447,7 +445,7 @@
         } catch (err) {
           if (err instanceof URIError) {
             err.message = 'Failed to decode param \'' + val + '\'';
-            err.status  = err.statusCode = 400;
+            err.status = err.statusCode = 400;
           }
           throw err;
         }
@@ -461,7 +459,7 @@
 
       function _parseHeaders(headers) {
         var parsed = {},
-            i;
+          i;
 
         function _fillInParsed(key, val) {
           if (key) {
@@ -510,7 +508,7 @@
           let i;
           for (i = 0; i < fns.length; i++) {
             let fn = fns[i];
-            data   = fn(data, headers, status);
+            data = fn(data, headers, status);
           }
         }
         if (typeof data === 'string') {
@@ -521,9 +519,9 @@
 
       function _createMethodWithoutData(name, callback) {
         return function(url, config) {
-          return _createMethod(name, url, null, config, function(d, r, p, config) {
+          return _createMethod(name, url, null, config, function(d, r, p) {
             let resourceId = p[r.key],
-                rData      = $mockStorage.getItem(r.id);
+              rData = $mockStorage.getItem(r.id);
 
             if (resourceId) {
               let rIndex = rData.findIndex((item) => String(item[r.primaryKey]) === String(resourceId));
@@ -533,7 +531,7 @@
                 _log('info', 'Response : ', 404, {error : 'Not Found'});
                 d.reject({
                   status : 404,
-                  data   : {error : 'Not Found'}
+                  data : {error : 'Not Found'}
                 });
               }
             } else if (name === 'get') {
@@ -542,7 +540,7 @@
               _log('info', 'Response : ', 404, {error : 'No Id Given'});
               d.reject({
                 status : 404,
-                data   : {error : 'No Id Given'}
+                data : {error : 'No Id Given'}
               });
             }
           });
@@ -553,7 +551,7 @@
         return function(url, data, config) {
           return _createMethod(name, url, data, config, function(d, r, p, config) {
             let resourceId = p[r.key],
-                rData      = $mockStorage.getItem(r.id);
+              rData = $mockStorage.getItem(r.id);
 
             data = _transformData(data, _headersGetter(config.headers), undefined, config.transformRequest);
 
@@ -565,7 +563,7 @@
                 _log('info', 'Response : ', 404, {error : 'Not Found'});
                 d.reject({
                   status : 404,
-                  data   : {error : 'Not Found'}
+                  data : {error : 'Not Found'}
                 });
               }
             } else if (name === 'post') {
@@ -574,7 +572,7 @@
               _log('info', 'Response : ', 404, {error : 'No Id Given'});
               d.reject({
                 status : 404,
-                data   : {error : 'No Id Given'}
+                data : {error : 'No Id Given'}
               });
             }
           });
@@ -589,39 +587,36 @@
         if (config) {
           _log('info', 'Config : ', config);
         }
-        let d       = $q.defer(),
-            promise = d.promise,
-            [r, p] = getResource(url);
-
-        config = Object.assign({
-          transformRequest  : defaults.transformRequest,
-          transformResponse : defaults.transformResponse
-        }, config);
+        let d = $q.defer(),
+          promise = d.promise,
+          [r, p] = getResource(url);
 
         if (r) {
+          config = Object.assign({
+            transformRequest : defaults.transformRequest,
+            transformResponse : defaults.transformResponse
+          }, config);
+
           callback(d, r, p, config);
-        } else {
-          _log('info', 'Response : ', 404, {error : 'Not a valid path!'});
-          d.reject({
-            status : 404,
-            data   : {error : 'Not a valid path!'}
+
+          promise = promise.then(config.transformResponse, config.transformResponse);
+
+          reversedInterceptors.forEach(function(interceptor) {
+            if (interceptor.response || interceptor.responseError) {
+              promise = promise.then(interceptor.response, interceptor.responseError);
+            }
           });
+        } else {
+          _log('info', 'Not a valid path! Call $http instead.');
+          promise = null;
         }
-
-        promise = promise.then(config.transformResponse, config.transformResponse);
-
-        reversedInterceptors.forEach(function(interceptor) {
-          if (interceptor.response || interceptor.responseError) {
-            promise = promise.then(interceptor.response, interceptor.responseError);
-          }
-        });
 
         return promise;
       }
     }
   }
 
-  function ModuleConfig($provide, $httpProvider) {
+  function ModuleConfig($provide) {
     httpDecorator.$inject = ['$delegate', '$mockRouter'];
     $provide.decorator('$http', httpDecorator);
 
@@ -630,19 +625,22 @@
         return $delegate.apply($delegate, arguments);
       };
 
-      $mockRouter.interceptors = $httpProvider.interceptors;
-      $mockRouter.defaults     = $httpProvider.defaults;
-
       Object.keys($delegate).filter((k)=> typeof $delegate[k] !== 'function')
         .forEach((k)=> {
           wrapper[k] = $delegate[k];
+          wrapper[`original${k}`] = $delegate[k];
         });
 
       Object.keys($delegate).filter((k)=> typeof $delegate[k] === 'function')
         .forEach((k)=> {
           wrapper[k] = function() {
             if (typeof $mockRouter[k] === 'function') {
-              return $mockRouter[k].apply($mockRouter, arguments);
+              let promise = $mockRouter[k].apply($mockRouter, arguments);
+              if (promise) {
+                return promise;
+              } else {
+                return $delegate[k].apply($delegate, arguments);
+              }
             } else {
               return $delegate[k].apply($delegate, arguments);
             }

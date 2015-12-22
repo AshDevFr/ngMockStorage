@@ -5,7 +5,7 @@
 
 
 ## Version 
-Current version: 0.1.6
+Current version: 0.1.7
 
 ## Usage
 
@@ -165,6 +165,15 @@ Options :
 * Write tests
 
 ## ChangeLog
+* 0.1.7
+```
+Library :
+  - Code refacto
+  - $http fallback
+  
+Samples :
+  - Fix tranformRequest issue
+```
 * 0.1.6
 ```
 Add a not uglified file in dist
