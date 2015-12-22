@@ -187,7 +187,7 @@
       if (typeof l !== 'string') {
         throw new TypeError('[ngMockRouter] - Provider.setLogLevel expects a string (error|warning|info).');
       }
-      if (Object.keys(availablesLogLevels).indexOf(l) > -1) {
+      if (Object.keys(availablesLogLevels).includes(l)) {
         logLevel = availablesLogLevels[l];
       }
     }
@@ -202,7 +202,7 @@
         throw new TypeError('[ngMockRouter] - Provider.addResource expects string, [object].');
       }
 
-      if (n.indexOf('.') > -1) {
+      if (n.includes('.')) {
         let pos = n.lastIndexOf('.');
         parentId = n.substring(0, pos);
         n = n.substring(pos + 1);
@@ -233,7 +233,7 @@
         if (config.parent) {
           let parent = _getResource(config.parent);
           if (parent) {
-            if (newResource.collection && parent.keys.indexOf(newResource.key) > -1) {
+            if (newResource.collection && parent.keys.includes(newResource.key)) {
               throw new TypeError('[ngMockRouter] - Provider.addResource: key ' + newResource.key + ' already exist. You can specify another one with the option key');
             }
             newResource.parent = config.parent;
@@ -255,7 +255,7 @@
       if (r) {
         if (r.collection && Array.isArray(d)) {
           $mockStorageProvider.setItem(r.id, d);
-        } else if (!r.collection && !Array.isArray(d) && typeof d === 'object') {
+        } else if (!r.collection && typeof d === 'object') {
           $mockStorageProvider.setItem(r.id, d);
         } else {
           throw new TypeError('[ngMockRouter] - Provider.loadDatas: Datas not valid.');
@@ -343,7 +343,7 @@
       function post() {
         return _createMethodWithData('post', function(d, r, p, data, rData) {
           let id = Math.random().toString(36).substring(2);
-          if (Array.isArray(rData)) {
+          if (Array.isArray(rData) && r.collection) {
             data[r.primaryKey] = id;
             rData.push(data);
             $mockStorage.setItem(r.id, rData);
@@ -364,13 +364,22 @@
 
       function put() {
         return _createMethodWithData('put', function(d, r, p, data, rData, rIndex) {
-          rData[rIndex] = data;
-          $mockStorage.setItem(r.id, rData);
-          _log('info', 'Response : ', 200, rData[rIndex]);
-          d.resolve({
-            status : 200,
-            data : rData[rIndex]
-          });
+          if (r.collection) {
+            rData[rIndex] = data;
+            $mockStorage.setItem(r.id, rData);
+            _log('info', 'Response : ', 200, rData[rIndex]);
+            d.resolve({
+              status : 200,
+              data : rData[rIndex]
+            });
+          } else {
+            $mockStorage.setItem(r.id, data);
+            _log('info', 'Response : ', 200, data);
+            d.resolve({
+              status : 200,
+              data : data
+            });
+          }
         });
       }
 
@@ -388,13 +397,23 @@
 
       function patch() {
         return _createMethodWithData('patch', function(d, r, p, data, rData, rIndex) {
-          Object.assign(rData[rIndex], data);
-          $mockStorage.setItem(r.id, rData);
-          _log('info', 'Response : ', 200, rData[rIndex]);
-          d.resolve({
-            status : 200,
-            data : rData[rIndex]
-          });
+          if (r.collection) {
+            Object.assign(rData[rIndex], data);
+            $mockStorage.setItem(r.id, rData);
+            _log('info', 'Response : ', 200, rData[rIndex]);
+            d.resolve({
+              status : 200,
+              data : rData[rIndex]
+            });
+          } else {
+            Object.assign(rData, data);
+            $mockStorage.setItem(r.id, rData);
+            _log('info', 'Response : ', 200, rData);
+            d.resolve({
+              status : 200,
+              data : rData
+            });
+          }
         });
       }
 
@@ -452,7 +471,7 @@
       }
 
       function _log(l, ...msg) {
-        if (Object.keys(availablesLogLevels).indexOf(l) > -1 && logLevel >= availablesLogLevels[l]) {
+        if (Object.keys(availablesLogLevels).includes(l) && logLevel >= availablesLogLevels[l]) {
           $log[l](...msg);
         }
       }
@@ -555,7 +574,9 @@
 
             data = _transformData(data, _headersGetter(config.headers), undefined, config.transformRequest);
 
-            if (resourceId) {
+            if (name === 'post' || !r.collection) {
+              callback(d, r, p, data, rData);
+            } else if (resourceId) {
               let rIndex = rData.findIndex((item) => String(item[r.primaryKey]) === String(resourceId));
               if (rIndex > -1) {
                 callback(d, r, p, data, rData, rIndex);
@@ -566,8 +587,6 @@
                   data : {error : 'Not Found'}
                 });
               }
-            } else if (name === 'post') {
-              callback(d, r, p, data, rData);
             } else {
               _log('info', 'Response : ', 404, {error : 'No Id Given'});
               d.reject({
