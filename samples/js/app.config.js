@@ -14,21 +14,23 @@
 
     $mockRouterProvider.loadDatas('todos', [
       {
-        id     : 1,
-        title  : 'Todos 1',
+        id : 1,
+        title : 'Todos 1',
         isDone : false
       },
       {
-        id     : 2,
-        title  : 'Todos 2',
+        id : 2,
+        title : 'Todos 2',
         isDone : false
       }
     ]);
 
     $httpProvider.interceptors.push('errInterceptorService');
-    $httpProvider.defaults.transformRequest.push(function(response) {
-      var data  = JSON.parse(response);
-      data.truc = true;
+    $httpProvider.defaults.transformRequest.push(function(data) {
+      if (data) {
+        data = JSON.parse(data);
+        data.truc = true;
+      }
 
       return data;
     });
