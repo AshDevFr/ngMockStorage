@@ -18,7 +18,7 @@
       destDir    = './dist';
 
   function rebundle(bundler) {
-    bundler.bundle()
+    return bundler.bundle()
       .on('error', (err) => {
         gutil.log(gutil.colors.red(err));
         this.emit('end');
@@ -40,6 +40,7 @@
       bundler.on('update', function() {
         gutil.log('Bundling ...');
         rebundle(bundler);
+        gulp.start('copy:dist');
       });
     } else {
       bundler = browserify(sources, {debug : true}).transform(babel, {presets : ['es2015']});

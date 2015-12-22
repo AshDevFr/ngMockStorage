@@ -33,6 +33,9 @@ $ bower install ngmockstorage
 ```
 
 #### Define the storage
+
+(__localStorage__ / sessionStorage)
+
 ```js
 (function() {
   'use strict';
@@ -138,7 +141,7 @@ Options :
 
 #### Set log level
 
-(error / warn / info / debug)
+(__error__ / warn / info / debug)
 
 ```js
 (function() {
@@ -159,7 +162,6 @@ Options :
 ## Todo
 * Write a proper README
 * Optimize code
-* Load datas
 * Write tests
 
 ## ChangeLog
