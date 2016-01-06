@@ -4,11 +4,12 @@
   angular.module('todomvc')
     .config(configFn);
 
-  configFn.$inject = ['$mockRouterProvider', '$httpProvider'];
+  configFn.$inject = ['$mockStorageProvider', '$mockRouterProvider', '$httpProvider'];
 
-  function configFn($mockRouterProvider, $httpProvider) {
+  function configFn($mockStorageProvider, $mockRouterProvider, $httpProvider) {
     $mockRouterProvider.setNamespace('api');
-    $mockRouterProvider.setLogLevel('info');
+    //$mockRouterProvider.setRouteMode('advanced');
+    $mockRouterProvider.setLogLevel('debug');
     $mockRouterProvider.addResource('todos');
     $mockRouterProvider.addResource('todos.infos', {collection : false});
 
