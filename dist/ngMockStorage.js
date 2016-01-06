@@ -183,7 +183,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
         availablesLogLevels = { error: 0, warn: 1, info: 2, debug: 3 },
         resources = [];
 
-    RouterService.$inject = ['$log', '$q', '$mockStorage', '$injector'];
+    RouterService.$inject = ['$q', '$mockStorage', '$injector'];
 
     provider = {
       setNamespace: setNamespace,
@@ -328,7 +328,19 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
       return keys;
     }
 
-    function RouterService($log, $q, $mockStorage, $injector) {
+    function _log(l) {
+      if (Object.keys(availablesLogLevels).includes(l) && logLevel >= availablesLogLevels[l]) {
+        var _console;
+
+        for (var _len = arguments.length, msg = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+          msg[_key - 1] = arguments[_key];
+        }
+
+        (_console = console)[l].apply(_console, msg);
+      }
+    }
+
+    function RouterService($q, $mockStorage, $injector) {
       var interceptors = $httpProvider.interceptors,
           reversedInterceptors = [],
           defaults = $httpProvider.defaults,
@@ -484,16 +496,6 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
             err.status = err.statusCode = 400;
           }
           throw err;
-        }
-      }
-
-      function _log(l) {
-        if (Object.keys(availablesLogLevels).includes(l) && logLevel >= availablesLogLevels[l]) {
-          for (var _len = arguments.length, msg = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-            msg[_key - 1] = arguments[_key];
-          }
-
-          $log[l].apply($log, msg);
         }
       }
 
