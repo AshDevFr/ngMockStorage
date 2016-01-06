@@ -176,7 +176,7 @@
       availablesLogLevels = {error : 0, warn : 1, info : 2, debug : 3},
       resources = [];
 
-    RouterService.$inject = ['$log', '$q', '$mockStorage', '$injector'];
+    RouterService.$inject = ['$q', '$mockStorage', '$injector'];
 
     provider = {
       setNamespace : setNamespace,
@@ -317,7 +317,13 @@
       return keys;
     }
 
-    function RouterService($log, $q, $mockStorage, $injector) {
+    function _log(l, ...msg) {
+      if (Object.keys(availablesLogLevels).includes(l) && logLevel >= availablesLogLevels[l]) {
+        console[l](...msg);
+      }
+    }
+
+    function RouterService($q, $mockStorage, $injector) {
       let interceptors = $httpProvider.interceptors,
         reversedInterceptors = [],
         defaults = $httpProvider.defaults,
@@ -479,12 +485,6 @@
             err.status = err.statusCode = 400;
           }
           throw err;
-        }
-      }
-
-      function _log(l, ...msg) {
-        if (Object.keys(availablesLogLevels).includes(l) && logLevel >= availablesLogLevels[l]) {
-          $log[l](...msg);
         }
       }
 
