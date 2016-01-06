@@ -57,6 +57,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
       setSerializer: setSerializer,
       setDeserializer: setDeserializer,
       setItem: setItem,
+      clean: clean,
       clear: clear,
       $get: StorageService
     };
@@ -101,6 +102,17 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
 
     function removeItem(key) {
       return $window[storageType].setItem(storageKeyPrefix + key);
+    }
+
+    function clean() {
+      var i = void 0,
+          k = void 0;
+      for (i = 0; i < $window[storageType].length; i++) {
+        k = $window[storageType].key(i);
+        if (k.includes(storageKeyPrefix)) {
+          $window[storageType].removeItem(k);
+        }
+      }
     }
 
     function clear() {

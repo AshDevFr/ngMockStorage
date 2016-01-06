@@ -49,6 +49,7 @@
       setSerializer : setSerializer,
       setDeserializer : setDeserializer,
       setItem : setItem,
+      clean : clean,
       clear : clear,
       $get : StorageService
     };
@@ -93,6 +94,17 @@
 
     function removeItem(key) {
       return $window[storageType].setItem(storageKeyPrefix + key);
+    }
+
+    function clean() {
+      let i,
+        k;
+      for (i = 0; i < $window[storageType].length; i++) {
+        k = $window[storageType].key(i);
+        if (k.includes(storageKeyPrefix)) {
+          $window[storageType].removeItem(k);
+        }
+      }
     }
 
     function clear() {
