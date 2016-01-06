@@ -219,7 +219,7 @@
       resource = _getResource(n);
 
       if (resource) {
-        throw new TypeError('[ngMockRouter] - Provider.addResource: Resource ' + n + ' already exist.');
+        throw new TypeError(`[ngMockRouter] - Provider.addResource: Resource ${n} already exist.`);
       } else {
         let newResource = {
           name : n
@@ -234,7 +234,7 @@
           let parent = _getResource(config.parent);
           if (parent) {
             if (newResource.collection && parent.keys.includes(newResource.key)) {
-              throw new TypeError('[ngMockRouter] - Provider.addResource: key ' + newResource.key + ' already exist. You can specify another one with the option key');
+              throw new TypeError(`[ngMockRouter] - Provider.addResource: key ${newResource.key} already exist. You can specify another one with the option key`);
             }
             newResource.parent = config.parent;
           }
@@ -261,7 +261,7 @@
           throw new TypeError('[ngMockRouter] - Provider.loadDatas: Datas not valid.');
         }
       } else {
-        throw new TypeError('[ngMockRouter] - Provider.loadDatas: Resource ' + n + ' do not exist.');
+        throw new TypeError(`[ngMockRouter] - Provider.loadDatas: Resource ${n} do not exist.`);
       }
     }
 
@@ -418,7 +418,7 @@
       }
 
       function getResource(path) {
-        path = ('/' + path + '/').replace(/\/\//g, '/');
+        path = (`/${path}/`).replace(/\/\//g, '/');
         let r = resources.find((r) => {
           return _getRegex(r.path).test(path);
         });
@@ -430,7 +430,7 @@
       }
 
       function _getRegex(path) {
-        path = '/' + namespace + '/' + path + '/';
+        path = `/${namespace}/` + path + '/';
         return new RegExp('^' +
           path.replace(/\/\//g, '/')
             .replace(/\//g, '\\/')
