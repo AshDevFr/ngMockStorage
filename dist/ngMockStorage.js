@@ -179,6 +179,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
   function RouterProvider($mockStorageProvider, $httpProvider) {
     var provider = void 0,
         namespace = '',
+        mode = 's',
         logLevel = 0,
         availablesLogLevels = { error: 0, warn: 1, info: 2, debug: 3 },
         resources = [];
@@ -187,6 +188,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
 
     provider = {
       setNamespace: setNamespace,
+      setRouteMode: setRouteMode,
       setLogLevel: setLogLevel,
       addResource: addResource,
       loadDatas: loadDatas,
@@ -200,6 +202,13 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
         throw new TypeError('[ngMockRouter] - Provider.setNamespace expects a string.');
       }
       namespace = n;
+    }
+
+    function setRouteMode(n) {
+      if (typeof n !== 'string') {
+        throw new TypeError('[ngMockRouter] - Provider.setNamespace expects a string.');
+      }
+      mode = n === 'advanced' ? 'a' : 's';
     }
 
     function setLogLevel(l) {
@@ -255,7 +264,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
           var parent = _getResource(config.parent);
           if (parent) {
             if (newResource.collection && parent.keys.includes(newResource.key)) {
-              throw new TypeError('[ngMockRouter] - Provider.addResource: key ' + newResource.key + ' already exist. You can specify another one with the option key');
+              throw new Error('[ngMockRouter] - Provider.addResource: key ' + newResource.key + ' already exist. You can specify another one with the option key');
             }
             newResource.parent = config.parent;
           }
@@ -264,20 +273,26 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
         newResource.id = _getId(newResource);
         newResource.keys = _getKeys(newResource);
 
-        $mockStorageProvider.setItem(newResource.id, newResource.data);
+        if (mode === 's') {
+          $mockStorageProvider.setItem(newResource.id, newResource.data);
+        }
 
         resources.push(newResource);
       }
     }
 
-    function loadDatas(n, d) {
-      var r = _getResource(n);
+    function loadDatas(n, d, p) {
+      var r = _getResource(n),
+          rId = void 0;
 
       if (r) {
+        rId = _getResourceId(r, p);
         if (r.collection && Array.isArray(d)) {
-          $mockStorageProvider.setItem(r.id, d);
+          _log('debug', 'Loading data', rId, d);
+          $mockStorageProvider.setItem(rId, d);
         } else if (!r.collection && (typeof d === 'undefined' ? 'undefined' : _typeof(d)) === 'object') {
-          $mockStorageProvider.setItem(r.id, d);
+          _log('debug', 'Loading data', rId, d);
+          $mockStorageProvider.setItem(rId, d);
         } else {
           throw new TypeError('[ngMockRouter] - Provider.loadDatas: Datas not valid.');
         }
@@ -290,6 +305,24 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
       return resources.find(function (r) {
         return r.id === n;
       });
+    }
+
+    function _getResourceId(r, p) {
+      var rId = void 0;
+      if (mode === 'a') {
+        rId = r.path.replace(/:([^\/]+)/gi, function (match, p1) {
+          if (String(p1) === String(r.key)) {
+            return '';
+          } else if (!p || !p[p1]) {
+            throw new Error('[ngMockRouter] - In advanced mode, unable to find the ressourceId: missing parameter');
+          } else {
+            return p[p1];
+          }
+        });
+      } else {
+        rId = r.id;
+      }
+      return rId;
     }
 
     function _getKey(n) {
@@ -375,11 +408,12 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
 
       function post() {
         return _createMethodWithData('post', function (d, r, p, data, rData) {
-          var id = Math.random().toString(36).substring(2);
+          var id = Math.random().toString(36).substring(2),
+              rId = _getResourceId(r, p);
           if (Array.isArray(rData) && r.collection) {
             data[r.primaryKey] = id;
             rData.push(data);
-            $mockStorage.setItem(r.id, rData);
+            $mockStorage.setItem(rId, rData);
             _log('info', 'Response : ', 200, data);
             d.resolve({
               status: 200,
@@ -397,16 +431,17 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
 
       function put() {
         return _createMethodWithData('put', function (d, r, p, data, rData, rIndex) {
+          var rId = _getResourceId(r, p);
           if (r.collection) {
             rData[rIndex] = data;
-            $mockStorage.setItem(r.id, rData);
+            $mockStorage.setItem(rId, rData);
             _log('info', 'Response : ', 200, rData[rIndex]);
             d.resolve({
               status: 200,
               data: rData[rIndex]
             });
           } else {
-            $mockStorage.setItem(r.id, data);
+            $mockStorage.setItem(rId, data);
             _log('info', 'Response : ', 200, data);
             d.resolve({
               status: 200,
@@ -418,8 +453,9 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
 
       function remove() {
         return _createMethodWithoutData('delete', function (d, r, p, rData, rIndex) {
+          var rId = _getResourceId(r, p);
           rData.splice(rIndex, 1);
-          $mockStorage.setItem(r.id, rData);
+          $mockStorage.setItem(rId, rData);
           _log('info', 'Response : ', 200, rData);
           d.resolve({
             status: 200,
@@ -430,9 +466,10 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
 
       function patch() {
         return _createMethodWithData('patch', function (d, r, p, data, rData, rIndex) {
+          var rId = _getResourceId(r, p);
           if (r.collection) {
             _extends(rData[rIndex], data);
-            $mockStorage.setItem(r.id, rData);
+            $mockStorage.setItem(rId, rData);
             _log('info', 'Response : ', 200, rData[rIndex]);
             d.resolve({
               status: 200,
@@ -440,7 +477,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
             });
           } else {
             _extends(rData, data);
-            $mockStorage.setItem(r.id, rData);
+            $mockStorage.setItem(rId, rData);
             _log('info', 'Response : ', 200, rData);
             d.resolve({
               status: 200,
@@ -562,8 +599,10 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
       function _createMethodWithoutData(name, callback) {
         return function (url, config) {
           return _createMethod(name, url, null, config, function (d, r, p) {
+            _log('debug', r, p);
             var resourceId = p[r.key],
-                rData = $mockStorage.getItem(r.id);
+                rId = _getResourceId(r, p),
+                rData = $mockStorage.getItem(rId) || (r.collection ? [] : null);
 
             if (resourceId) {
               var rIndex = rData.findIndex(function (item) {
@@ -595,7 +634,8 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
         return function (url, data, config) {
           return _createMethod(name, url, data, config, function (d, r, p, config) {
             var resourceId = p[r.key],
-                rData = $mockStorage.getItem(r.id);
+                rId = _getResourceId(r, p),
+                rData = $mockStorage.getItem(rId) || (r.collection ? [] : null);
 
             data = _transformData(data, _headersGetter(config.headers), undefined, config.transformRequest);
 
