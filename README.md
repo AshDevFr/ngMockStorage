@@ -5,7 +5,7 @@
 
 
 ## Version 
-Current version: 0.1.9
+Current version: 0.1.10
 
 ## Usage
 
@@ -83,6 +83,22 @@ $ bower install ngmockstorage
 })();
 ```
 
+#### Enable Advanced Mode
+```js
+(function() {
+  'use strict';
+
+  angular.module('<project name>')
+    .config(configFn);
+
+  configFn.$inject = ['$mockRouterProvider'];
+
+  function configFn($mockRouterProvider) {
+    $mockRouterProvider.setRouteMode('advanced');
+  }
+})();
+```
+
 #### Add a resource
 
 The name format : \<parent resource name\>.\<resource name\>
@@ -111,6 +127,8 @@ Options :
 ```
 
 #### Load datas
+
+##### Simple mode
 ```js
 (function() {
   'use strict';
@@ -135,6 +153,51 @@ Options :
         isDone : false
       }
     ]);
+    
+    $mockRouterProvider.addResource('todos.detail', {collection: false});
+
+    $mockRouterProvider.loadDatas('todos', {
+      createdBy: 'Someone'
+    });
+  }
+})();
+```
+
+##### Advanced mode
+```js
+(function() {
+  'use strict';
+
+  angular.module('<project name>')
+    .config(configFn);
+
+  configFn.$inject = ['$mockRouterProvider'];
+
+  function configFn($mockRouterProvider) {
+    $mockRouterProvider.addResource('todos');
+
+    $mockRouterProvider.loadDatas('todos', [
+      {
+        id     : 1,
+        title  : 'Todos 1',
+        isDone : false
+      },
+      {
+        id     : 2,
+        title  : 'Todos 2',
+        isDone : false
+      }
+    ]);
+    
+    $mockRouterProvider.addResource('todos.detail', {collection: false});
+
+    $mockRouterProvider.loadDatas('todos', {
+      createdBy: 'Someone'
+    }, {idTodos: 1);
+    
+    $mockRouterProvider.loadDatas('todos', {
+      createdBy: 'Another one'
+    }, {idTodos: 2);
   }
 })();
 ```
@@ -165,6 +228,10 @@ Options :
 * Write tests
 
 ## ChangeLog
+* 0.1.10
+```
+Add an advanced mode to allow a more compliant mock system
+```
 * 0.1.9
 ```
 Fix issue with put/patch when the resource is not a collection
