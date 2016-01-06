@@ -172,6 +172,7 @@
   function RouterProvider($mockStorageProvider, $httpProvider) {
     let provider,
       namespace = '',
+      mode = 's',
       logLevel = 0,
       availablesLogLevels = {error : 0, warn : 1, info : 2, debug : 3},
       resources = [];
@@ -180,6 +181,7 @@
 
     provider = {
       setNamespace : setNamespace,
+      setRouteMode : setRouteMode,
       setLogLevel : setLogLevel,
       addResource : addResource,
       loadDatas : loadDatas,
@@ -193,6 +195,13 @@
         throw new TypeError('[ngMockRouter] - Provider.setNamespace expects a string.');
       }
       namespace = n;
+    }
+
+    function setRouteMode(n) {
+      if (typeof n !== 'string') {
+        throw new TypeError('[ngMockRouter] - Provider.setNamespace expects a string.');
+      }
+      mode = n === 'advanced' ? 'a' : 's';
     }
 
     function setLogLevel(l) {
@@ -246,7 +255,7 @@
           let parent = _getResource(config.parent);
           if (parent) {
             if (newResource.collection && parent.keys.includes(newResource.key)) {
-              throw new TypeError(`[ngMockRouter] - Provider.addResource: key ${newResource.key} already exist. You can specify another one with the option key`);
+              throw new Error(`[ngMockRouter] - Provider.addResource: key ${newResource.key} already exist. You can specify another one with the option key`);
             }
             newResource.parent = config.parent;
           }
@@ -255,23 +264,30 @@
         newResource.id = _getId(newResource);
         newResource.keys = _getKeys(newResource);
 
-        $mockStorageProvider.setItem(newResource.id, newResource.data);
+        if (mode === 's') {
+          $mockStorageProvider.setItem(newResource.id, newResource.data);
+        }
 
         resources.push(newResource);
       }
     }
 
-    function loadDatas(n, d) {
-      let r = _getResource(n);
+    function loadDatas(n, d, p) {
+      let r = _getResource(n),
+        rId;
 
       if (r) {
+        rId = _getResourceId(r, p);
         if (r.collection && Array.isArray(d)) {
-          $mockStorageProvider.setItem(r.id, d);
+          _log('debug', 'Loading data', rId, d);
+          $mockStorageProvider.setItem(rId, d);
         } else if (!r.collection && typeof d === 'object') {
-          $mockStorageProvider.setItem(r.id, d);
+          _log('debug', 'Loading data', rId, d);
+          $mockStorageProvider.setItem(rId, d);
         } else {
           throw new TypeError('[ngMockRouter] - Provider.loadDatas: Datas not valid.');
         }
+
       } else {
         throw new TypeError(`[ngMockRouter] - Provider.loadDatas: Resource ${n} do not exist.`);
       }
@@ -279,6 +295,24 @@
 
     function _getResource(n) {
       return resources.find(r => r.id === n);
+    }
+
+    function _getResourceId(r, p) {
+      let rId;
+      if (mode === 'a') {
+        rId = r.path.replace(/:([^\/]+)/gi, function(match, p1) {
+          if (String(p1) === String(r.key)) {
+            return '';
+          } else if (!p || !p[p1]) {
+            throw new Error('[ngMockRouter] - In advanced mode, unable to find the ressourceId: missing parameter');
+          } else {
+            return p[p1];
+          }
+        });
+      } else {
+        rId = r.id;
+      }
+      return rId;
     }
 
     function _getKey(n) {
@@ -360,11 +394,12 @@
 
       function post() {
         return _createMethodWithData('post', function(d, r, p, data, rData) {
-          let id = Math.random().toString(36).substring(2);
+          let id = Math.random().toString(36).substring(2),
+            rId = _getResourceId(r, p);
           if (Array.isArray(rData) && r.collection) {
             data[r.primaryKey] = id;
             rData.push(data);
-            $mockStorage.setItem(r.id, rData);
+            $mockStorage.setItem(rId, rData);
             _log('info', 'Response : ', 200, data);
             d.resolve({
               status : 200,
@@ -382,16 +417,17 @@
 
       function put() {
         return _createMethodWithData('put', function(d, r, p, data, rData, rIndex) {
+          let rId = _getResourceId(r, p);
           if (r.collection) {
             rData[rIndex] = data;
-            $mockStorage.setItem(r.id, rData);
+            $mockStorage.setItem(rId, rData);
             _log('info', 'Response : ', 200, rData[rIndex]);
             d.resolve({
               status : 200,
               data : rData[rIndex]
             });
           } else {
-            $mockStorage.setItem(r.id, data);
+            $mockStorage.setItem(rId, data);
             _log('info', 'Response : ', 200, data);
             d.resolve({
               status : 200,
@@ -403,8 +439,9 @@
 
       function remove() {
         return _createMethodWithoutData('delete', function(d, r, p, rData, rIndex) {
+          let rId = _getResourceId(r, p);
           rData.splice(rIndex, 1);
-          $mockStorage.setItem(r.id, rData);
+          $mockStorage.setItem(rId, rData);
           _log('info', 'Response : ', 200, rData);
           d.resolve({
             status : 200,
@@ -415,9 +452,10 @@
 
       function patch() {
         return _createMethodWithData('patch', function(d, r, p, data, rData, rIndex) {
+          let rId = _getResourceId(r, p);
           if (r.collection) {
             Object.assign(rData[rIndex], data);
-            $mockStorage.setItem(r.id, rData);
+            $mockStorage.setItem(rId, rData);
             _log('info', 'Response : ', 200, rData[rIndex]);
             d.resolve({
               status : 200,
@@ -425,7 +463,7 @@
             });
           } else {
             Object.assign(rData, data);
-            $mockStorage.setItem(r.id, rData);
+            $mockStorage.setItem(rId, rData);
             _log('info', 'Response : ', 200, rData);
             d.resolve({
               status : 200,
@@ -551,8 +589,10 @@
       function _createMethodWithoutData(name, callback) {
         return function(url, config) {
           return _createMethod(name, url, null, config, function(d, r, p) {
+            _log('debug', r, p);
             let resourceId = p[r.key],
-              rData = $mockStorage.getItem(r.id);
+              rId = _getResourceId(r, p),
+              rData = $mockStorage.getItem(rId) || (r.collection ? [] : null);
 
             if (resourceId) {
               let rIndex = rData.findIndex((item) => String(item[r.primaryKey]) === String(resourceId));
@@ -582,7 +622,8 @@
         return function(url, data, config) {
           return _createMethod(name, url, data, config, function(d, r, p, config) {
             let resourceId = p[r.key],
-              rData = $mockStorage.getItem(r.id);
+              rId = _getResourceId(r, p),
+              rData = $mockStorage.getItem(rId) || (r.collection ? [] : null);
 
             data = _transformData(data, _headersGetter(config.headers), undefined, config.transformRequest);
 
