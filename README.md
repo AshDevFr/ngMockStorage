@@ -4,6 +4,8 @@
 [![Build Status](https://travis-ci.org/AshDevFr/ngMockStorage.svg?branch=master)](https://travis-ci.org/AshDevFr/ngMockStorage)
 
 
+![NPM](https://nodei.co/npm/ngmockstorage.png?downloads=true&downloadRank=true&stars=true)
+
 ## Version 
 Current version: 0.1.10
 
